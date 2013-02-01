@@ -1,0 +1,1266 @@
+<HTML>
+<BODY BGCOLOR="white">
+<PRE>
+<FONT color="green">001</FONT>    /*<a name="line.1"></a>
+<FONT color="green">002</FONT>     * Licensed to the Apache Software Foundation (ASF) under one or more<a name="line.2"></a>
+<FONT color="green">003</FONT>     * contributor license agreements.  See the NOTICE file distributed with<a name="line.3"></a>
+<FONT color="green">004</FONT>     * this work for additional information regarding copyright ownership.<a name="line.4"></a>
+<FONT color="green">005</FONT>     * The ASF licenses this file to You under the Apache License, Version 2.0<a name="line.5"></a>
+<FONT color="green">006</FONT>     * (the "License"); you may not use this file except in compliance with<a name="line.6"></a>
+<FONT color="green">007</FONT>     * the License.  You may obtain a copy of the License at<a name="line.7"></a>
+<FONT color="green">008</FONT>     *<a name="line.8"></a>
+<FONT color="green">009</FONT>     *     http://www.apache.org/licenses/LICENSE-2.0<a name="line.9"></a>
+<FONT color="green">010</FONT>     *<a name="line.10"></a>
+<FONT color="green">011</FONT>     * Unless required by applicable law or agreed to in writing, software<a name="line.11"></a>
+<FONT color="green">012</FONT>     * distributed under the License is distributed on an "AS IS" BASIS,<a name="line.12"></a>
+<FONT color="green">013</FONT>     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<a name="line.13"></a>
+<FONT color="green">014</FONT>     * See the License for the specific language governing permissions and<a name="line.14"></a>
+<FONT color="green">015</FONT>     * limitations under the License.<a name="line.15"></a>
+<FONT color="green">016</FONT>     */<a name="line.16"></a>
+<FONT color="green">017</FONT>    package org.apache.commons.configuration;<a name="line.17"></a>
+<FONT color="green">018</FONT>    <a name="line.18"></a>
+<FONT color="green">019</FONT>    import static org.junit.Assert.assertEquals;<a name="line.19"></a>
+<FONT color="green">020</FONT>    import static org.junit.Assert.assertFalse;<a name="line.20"></a>
+<FONT color="green">021</FONT>    import static org.junit.Assert.assertNotNull;<a name="line.21"></a>
+<FONT color="green">022</FONT>    import static org.junit.Assert.assertNull;<a name="line.22"></a>
+<FONT color="green">023</FONT>    import static org.junit.Assert.assertSame;<a name="line.23"></a>
+<FONT color="green">024</FONT>    import static org.junit.Assert.assertTrue;<a name="line.24"></a>
+<FONT color="green">025</FONT>    import static org.junit.Assert.fail;<a name="line.25"></a>
+<FONT color="green">026</FONT>    <a name="line.26"></a>
+<FONT color="green">027</FONT>    import java.io.File;<a name="line.27"></a>
+<FONT color="green">028</FONT>    import java.io.FileReader;<a name="line.28"></a>
+<FONT color="green">029</FONT>    import java.io.FileWriter;<a name="line.29"></a>
+<FONT color="green">030</FONT>    import java.io.IOException;<a name="line.30"></a>
+<FONT color="green">031</FONT>    import java.io.Reader;<a name="line.31"></a>
+<FONT color="green">032</FONT>    import java.io.Writer;<a name="line.32"></a>
+<FONT color="green">033</FONT>    import java.net.URL;<a name="line.33"></a>
+<FONT color="green">034</FONT>    import java.util.Collection;<a name="line.34"></a>
+<FONT color="green">035</FONT>    import java.util.Iterator;<a name="line.35"></a>
+<FONT color="green">036</FONT>    import java.util.List;<a name="line.36"></a>
+<FONT color="green">037</FONT>    import java.util.Set;<a name="line.37"></a>
+<FONT color="green">038</FONT>    <a name="line.38"></a>
+<FONT color="green">039</FONT>    import org.apache.commons.configuration.beanutils.BeanHelper;<a name="line.39"></a>
+<FONT color="green">040</FONT>    import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;<a name="line.40"></a>
+<FONT color="green">041</FONT>    import org.apache.commons.configuration.tree.DefaultConfigurationNode;<a name="line.41"></a>
+<FONT color="green">042</FONT>    import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;<a name="line.42"></a>
+<FONT color="green">043</FONT>    import org.junit.After;<a name="line.43"></a>
+<FONT color="green">044</FONT>    import org.junit.Before;<a name="line.44"></a>
+<FONT color="green">045</FONT>    import org.junit.Test;<a name="line.45"></a>
+<FONT color="green">046</FONT>    <a name="line.46"></a>
+<FONT color="green">047</FONT>    /**<a name="line.47"></a>
+<FONT color="green">048</FONT>     * Test class for VFSConfigurationBuilder.<a name="line.48"></a>
+<FONT color="green">049</FONT>     *<a name="line.49"></a>
+<FONT color="green">050</FONT>     * @author &lt;a<a name="line.50"></a>
+<FONT color="green">051</FONT>     * href="http://commons.apache.org/configuration/team-list.html"&gt;Commons<a name="line.51"></a>
+<FONT color="green">052</FONT>     * Configuration team&lt;/a&gt;<a name="line.52"></a>
+<FONT color="green">053</FONT>     * @version $Id: TestVFSConfigurationBuilder.java 1308148 2012-04-01 16:27:41Z rgoers $<a name="line.53"></a>
+<FONT color="green">054</FONT>     */<a name="line.54"></a>
+<FONT color="green">055</FONT>    public class TestVFSConfigurationBuilder<a name="line.55"></a>
+<FONT color="green">056</FONT>    {<a name="line.56"></a>
+<FONT color="green">057</FONT>        /** Test configuration definition file. */<a name="line.57"></a>
+<FONT color="green">058</FONT>        private static final File TEST_FILE = ConfigurationAssert<a name="line.58"></a>
+<FONT color="green">059</FONT>                .getTestFile("testDigesterConfiguration.xml");<a name="line.59"></a>
+<FONT color="green">060</FONT>    <a name="line.60"></a>
+<FONT color="green">061</FONT>        private static final File ADDITIONAL_FILE = ConfigurationAssert<a name="line.61"></a>
+<FONT color="green">062</FONT>                .getTestFile("testDigesterConfiguration2.xml");<a name="line.62"></a>
+<FONT color="green">063</FONT>    <a name="line.63"></a>
+<FONT color="green">064</FONT>        private static final File OPTIONAL_FILE = ConfigurationAssert<a name="line.64"></a>
+<FONT color="green">065</FONT>                .getTestFile("testDigesterOptionalConfiguration.xml");<a name="line.65"></a>
+<FONT color="green">066</FONT>    <a name="line.66"></a>
+<FONT color="green">067</FONT>        private static final File OPTIONALEX_FILE = ConfigurationAssert<a name="line.67"></a>
+<FONT color="green">068</FONT>                .getTestFile("testDigesterOptionalConfigurationEx.xml");<a name="line.68"></a>
+<FONT color="green">069</FONT>    <a name="line.69"></a>
+<FONT color="green">070</FONT>        private static final File MULTI_FILE = ConfigurationAssert<a name="line.70"></a>
+<FONT color="green">071</FONT>                .getTestFile("testDigesterConfiguration3.xml");<a name="line.71"></a>
+<FONT color="green">072</FONT>    <a name="line.72"></a>
+<FONT color="green">073</FONT>        private static final File INIT_FILE = ConfigurationAssert<a name="line.73"></a>
+<FONT color="green">074</FONT>                .getTestFile("testComplexInitialization.xml");<a name="line.74"></a>
+<FONT color="green">075</FONT>    <a name="line.75"></a>
+<FONT color="green">076</FONT>        private static final File CLASS_FILE = ConfigurationAssert<a name="line.76"></a>
+<FONT color="green">077</FONT>                .getTestFile("testExtendedClass.xml");<a name="line.77"></a>
+<FONT color="green">078</FONT>    <a name="line.78"></a>
+<FONT color="green">079</FONT>        private static final File PROVIDER_FILE = ConfigurationAssert<a name="line.79"></a>
+<FONT color="green">080</FONT>                .getTestFile("testConfigurationProvider.xml");<a name="line.80"></a>
+<FONT color="green">081</FONT>    <a name="line.81"></a>
+<FONT color="green">082</FONT>        private static final File EXTENDED_PROVIDER_FILE = ConfigurationAssert<a name="line.82"></a>
+<FONT color="green">083</FONT>                .getTestFile("testExtendedXMLConfigurationProvider.xml");<a name="line.83"></a>
+<FONT color="green">084</FONT>    <a name="line.84"></a>
+<FONT color="green">085</FONT>        private static final File GLOBAL_LOOKUP_FILE = ConfigurationAssert<a name="line.85"></a>
+<FONT color="green">086</FONT>                .getTestFile("testGlobalLookup.xml");<a name="line.86"></a>
+<FONT color="green">087</FONT>    <a name="line.87"></a>
+<FONT color="green">088</FONT>        private static final File SYSTEM_PROPS_FILE = ConfigurationAssert<a name="line.88"></a>
+<FONT color="green">089</FONT>                .getTestFile("testSystemProperties.xml");<a name="line.89"></a>
+<FONT color="green">090</FONT>    <a name="line.90"></a>
+<FONT color="green">091</FONT>        private static final File VALIDATION_FILE = ConfigurationAssert<a name="line.91"></a>
+<FONT color="green">092</FONT>                .getTestFile("testValidation.xml");<a name="line.92"></a>
+<FONT color="green">093</FONT>    <a name="line.93"></a>
+<FONT color="green">094</FONT>        private static final File VALIDATION2_FILE = ConfigurationAssert<a name="line.94"></a>
+<FONT color="green">095</FONT>                .getTestFile("testValidation2.xml");<a name="line.95"></a>
+<FONT color="green">096</FONT>    <a name="line.96"></a>
+<FONT color="green">097</FONT>        private static final File MULTI_TENENT_FILE = ConfigurationAssert<a name="line.97"></a>
+<FONT color="green">098</FONT>                .getTestFile("testMultiTenentConfigurationBuilder.xml");<a name="line.98"></a>
+<FONT color="green">099</FONT>    <a name="line.99"></a>
+<FONT color="green">100</FONT>        private static final File FILESYSTEM_FILE = ConfigurationAssert<a name="line.100"></a>
+<FONT color="green">101</FONT>                .getTestFile("testFileSystem.xml");<a name="line.101"></a>
+<FONT color="green">102</FONT>    <a name="line.102"></a>
+<FONT color="green">103</FONT>        private static final File FILERELOAD_FILE = ConfigurationAssert<a name="line.103"></a>
+<FONT color="green">104</FONT>                .getTestFile("testFileReloadConfigurationBuilder.xml");<a name="line.104"></a>
+<FONT color="green">105</FONT>    <a name="line.105"></a>
+<FONT color="green">106</FONT>        private static final File MULTI_RELOAD_FILE1 = ConfigurationAssert<a name="line.106"></a>
+<FONT color="green">107</FONT>                .getTestFile("testVFSMultiTenentConfigurationBuilder1.xml");<a name="line.107"></a>
+<FONT color="green">108</FONT>    <a name="line.108"></a>
+<FONT color="green">109</FONT>        private static final File MULTI_RELOAD_FILE2 = ConfigurationAssert<a name="line.109"></a>
+<FONT color="green">110</FONT>                .getTestFile("testVFSMultiTenentConfigurationBuilder2.xml");<a name="line.110"></a>
+<FONT color="green">111</FONT>    <a name="line.111"></a>
+<FONT color="green">112</FONT>        /** Constant for the name of an optional configuration.*/<a name="line.112"></a>
+<FONT color="green">113</FONT>        private static final String OPTIONAL_NAME = "optionalConfig";<a name="line.113"></a>
+<FONT color="green">114</FONT>    <a name="line.114"></a>
+<FONT color="green">115</FONT>        /** Stores the object to be tested. */<a name="line.115"></a>
+<FONT color="green">116</FONT>        DefaultConfigurationBuilder factory;<a name="line.116"></a>
+<FONT color="green">117</FONT>    <a name="line.117"></a>
+<FONT color="green">118</FONT>        @Before<a name="line.118"></a>
+<FONT color="green">119</FONT>        public void setUp() throws Exception<a name="line.119"></a>
+<FONT color="green">120</FONT>        {<a name="line.120"></a>
+<FONT color="green">121</FONT>            System<a name="line.121"></a>
+<FONT color="green">122</FONT>                    .setProperty("java.naming.factory.initial",<a name="line.122"></a>
+<FONT color="green">123</FONT>                            "org.apache.commons.configuration.MockInitialContextFactory");<a name="line.123"></a>
+<FONT color="green">124</FONT>            System.setProperty("test_file_xml", "test.xml");<a name="line.124"></a>
+<FONT color="green">125</FONT>            System.setProperty("test_file_combine", "testcombine1.xml");<a name="line.125"></a>
+<FONT color="green">126</FONT>            System.setProperty("basePath", "file://" + System.getProperty("user.dir") + "/target/test-classes");<a name="line.126"></a>
+<FONT color="green">127</FONT>            FileSystem.setDefaultFileSystem(new VFSFileSystem());<a name="line.127"></a>
+<FONT color="green">128</FONT>            factory = new DefaultConfigurationBuilder();<a name="line.128"></a>
+<FONT color="green">129</FONT>            factory.clearErrorListeners();  // avoid exception messages<a name="line.129"></a>
+<FONT color="green">130</FONT>        }<a name="line.130"></a>
+<FONT color="green">131</FONT>    <a name="line.131"></a>
+<FONT color="green">132</FONT>        @After<a name="line.132"></a>
+<FONT color="green">133</FONT>        public void tearDown() throws Exception<a name="line.133"></a>
+<FONT color="green">134</FONT>        {<a name="line.134"></a>
+<FONT color="green">135</FONT>            FileSystem.resetDefaultFileSystem();<a name="line.135"></a>
+<FONT color="green">136</FONT>        }<a name="line.136"></a>
+<FONT color="green">137</FONT>    <a name="line.137"></a>
+<FONT color="green">138</FONT>        /**<a name="line.138"></a>
+<FONT color="green">139</FONT>         * Tests the isReservedNode() method of ConfigurationDeclaration.<a name="line.139"></a>
+<FONT color="green">140</FONT>         */<a name="line.140"></a>
+<FONT color="green">141</FONT>        @Test<a name="line.141"></a>
+<FONT color="green">142</FONT>        public void testConfigurationDeclarationIsReserved()<a name="line.142"></a>
+<FONT color="green">143</FONT>        {<a name="line.143"></a>
+<FONT color="green">144</FONT>            DefaultConfigurationBuilder.ConfigurationDeclaration decl = new DefaultConfigurationBuilder.ConfigurationDeclaration(<a name="line.144"></a>
+<FONT color="green">145</FONT>                    factory, factory);<a name="line.145"></a>
+<FONT color="green">146</FONT>            DefaultConfigurationNode parent = new DefaultConfigurationNode();<a name="line.146"></a>
+<FONT color="green">147</FONT>            DefaultConfigurationNode nd = new DefaultConfigurationNode("at");<a name="line.147"></a>
+<FONT color="green">148</FONT>            parent.addAttribute(nd);<a name="line.148"></a>
+<FONT color="green">149</FONT>            assertTrue("Attribute at not recognized", decl.isReservedNode(nd));<a name="line.149"></a>
+<FONT color="green">150</FONT>            nd = new DefaultConfigurationNode("optional");<a name="line.150"></a>
+<FONT color="green">151</FONT>            parent.addAttribute(nd);<a name="line.151"></a>
+<FONT color="green">152</FONT>            assertTrue("Attribute optional not recognized", decl.isReservedNode(nd));<a name="line.152"></a>
+<FONT color="green">153</FONT>            nd = new DefaultConfigurationNode("config-class");<a name="line.153"></a>
+<FONT color="green">154</FONT>            parent.addAttribute(nd);<a name="line.154"></a>
+<FONT color="green">155</FONT>            assertTrue("Inherited attribute not recognized", decl<a name="line.155"></a>
+<FONT color="green">156</FONT>                    .isReservedNode(nd));<a name="line.156"></a>
+<FONT color="green">157</FONT>            nd = new DefaultConfigurationNode("different");<a name="line.157"></a>
+<FONT color="green">158</FONT>            parent.addAttribute(nd);<a name="line.158"></a>
+<FONT color="green">159</FONT>            assertFalse("Wrong reserved attribute", decl.isReservedNode(nd));<a name="line.159"></a>
+<FONT color="green">160</FONT>            nd = new DefaultConfigurationNode("at");<a name="line.160"></a>
+<FONT color="green">161</FONT>            parent.addChild(nd);<a name="line.161"></a>
+<FONT color="green">162</FONT>            assertFalse("Node type not evaluated", decl.isReservedNode(nd));<a name="line.162"></a>
+<FONT color="green">163</FONT>        }<a name="line.163"></a>
+<FONT color="green">164</FONT>    <a name="line.164"></a>
+<FONT color="green">165</FONT>        /**<a name="line.165"></a>
+<FONT color="green">166</FONT>         * Tests if the at attribute is correctly detected as reserved attribute.<a name="line.166"></a>
+<FONT color="green">167</FONT>         */<a name="line.167"></a>
+<FONT color="green">168</FONT>        @Test<a name="line.168"></a>
+<FONT color="green">169</FONT>        public void testConfigurationDeclarationIsReservedAt()<a name="line.169"></a>
+<FONT color="green">170</FONT>        {<a name="line.170"></a>
+<FONT color="green">171</FONT>            checkOldReservedAttribute("at");<a name="line.171"></a>
+<FONT color="green">172</FONT>        }<a name="line.172"></a>
+<FONT color="green">173</FONT>    <a name="line.173"></a>
+<FONT color="green">174</FONT>        /**<a name="line.174"></a>
+<FONT color="green">175</FONT>         * Tests if the optional attribute is correctly detected as reserved<a name="line.175"></a>
+<FONT color="green">176</FONT>         * attribute.<a name="line.176"></a>
+<FONT color="green">177</FONT>         */<a name="line.177"></a>
+<FONT color="green">178</FONT>        @Test<a name="line.178"></a>
+<FONT color="green">179</FONT>        public void testConfigurationDeclarationIsReservedOptional()<a name="line.179"></a>
+<FONT color="green">180</FONT>        {<a name="line.180"></a>
+<FONT color="green">181</FONT>            checkOldReservedAttribute("optional");<a name="line.181"></a>
+<FONT color="green">182</FONT>        }<a name="line.182"></a>
+<FONT color="green">183</FONT>    <a name="line.183"></a>
+<FONT color="green">184</FONT>        /**<a name="line.184"></a>
+<FONT color="green">185</FONT>         * Tests if special reserved attributes are recognized by the<a name="line.185"></a>
+<FONT color="green">186</FONT>         * isReservedNode() method. For compatibility reasons the attributes "at"<a name="line.186"></a>
+<FONT color="green">187</FONT>         * and "optional" are also treated as reserved attributes, but only if there<a name="line.187"></a>
+<FONT color="green">188</FONT>         * are no corresponding attributes with the "config-" prefix.<a name="line.188"></a>
+<FONT color="green">189</FONT>         *<a name="line.189"></a>
+<FONT color="green">190</FONT>         * @param name the attribute name<a name="line.190"></a>
+<FONT color="green">191</FONT>         */<a name="line.191"></a>
+<FONT color="green">192</FONT>        private void checkOldReservedAttribute(String name)<a name="line.192"></a>
+<FONT color="green">193</FONT>        {<a name="line.193"></a>
+<FONT color="green">194</FONT>            DefaultConfigurationBuilder.ConfigurationDeclaration decl = new DefaultConfigurationBuilder.ConfigurationDeclaration(<a name="line.194"></a>
+<FONT color="green">195</FONT>                    factory, factory);<a name="line.195"></a>
+<FONT color="green">196</FONT>            DefaultConfigurationNode parent = new DefaultConfigurationNode();<a name="line.196"></a>
+<FONT color="green">197</FONT>            DefaultConfigurationNode nd = new DefaultConfigurationNode("config-"<a name="line.197"></a>
+<FONT color="green">198</FONT>                    + name);<a name="line.198"></a>
+<FONT color="green">199</FONT>            parent.addAttribute(nd);<a name="line.199"></a>
+<FONT color="green">200</FONT>            assertTrue("config-" + name + " attribute not recognized", decl<a name="line.200"></a>
+<FONT color="green">201</FONT>                    .isReservedNode(nd));<a name="line.201"></a>
+<FONT color="green">202</FONT>            DefaultConfigurationNode nd2 = new DefaultConfigurationNode(name);<a name="line.202"></a>
+<FONT color="green">203</FONT>            parent.addAttribute(nd2);<a name="line.203"></a>
+<FONT color="green">204</FONT>            assertFalse(name + " is reserved though config- exists", decl<a name="line.204"></a>
+<FONT color="green">205</FONT>                    .isReservedNode(nd2));<a name="line.205"></a>
+<FONT color="green">206</FONT>            assertTrue("config- attribute not recognized when " + name + " exists",<a name="line.206"></a>
+<FONT color="green">207</FONT>                    decl.isReservedNode(nd));<a name="line.207"></a>
+<FONT color="green">208</FONT>        }<a name="line.208"></a>
+<FONT color="green">209</FONT>    <a name="line.209"></a>
+<FONT color="green">210</FONT>        /**<a name="line.210"></a>
+<FONT color="green">211</FONT>         * Tests access to certain reserved attributes of a<a name="line.211"></a>
+<FONT color="green">212</FONT>         * ConfigurationDeclaration.<a name="line.212"></a>
+<FONT color="green">213</FONT>         */<a name="line.213"></a>
+<FONT color="green">214</FONT>        @Test<a name="line.214"></a>
+<FONT color="green">215</FONT>        public void testConfigurationDeclarationGetAttributes()<a name="line.215"></a>
+<FONT color="green">216</FONT>        {<a name="line.216"></a>
+<FONT color="green">217</FONT>            factory.addProperty("xml.fileName", "test.xml");<a name="line.217"></a>
+<FONT color="green">218</FONT>            DefaultConfigurationBuilder.ConfigurationDeclaration decl = new DefaultConfigurationBuilder.ConfigurationDeclaration(<a name="line.218"></a>
+<FONT color="green">219</FONT>                    factory, factory.configurationAt("xml"));<a name="line.219"></a>
+<FONT color="green">220</FONT>            assertNull("Found an at attribute", decl.getAt());<a name="line.220"></a>
+<FONT color="green">221</FONT>            assertFalse("Found an optional attribute", decl.isOptional());<a name="line.221"></a>
+<FONT color="green">222</FONT>            factory.addProperty("xml[@config-at]", "test1");<a name="line.222"></a>
+<FONT color="green">223</FONT>            assertEquals("Wrong value of at attribute", "test1", decl.getAt());<a name="line.223"></a>
+<FONT color="green">224</FONT>            factory.addProperty("xml[@at]", "test2");<a name="line.224"></a>
+<FONT color="green">225</FONT>            assertEquals("Wrong value of config-at attribute", "test1", decl.getAt());<a name="line.225"></a>
+<FONT color="green">226</FONT>            factory.clearProperty("xml[@config-at]");<a name="line.226"></a>
+<FONT color="green">227</FONT>            assertEquals("Old at attribute not detected", "test2", decl.getAt());<a name="line.227"></a>
+<FONT color="green">228</FONT>            factory.addProperty("xml[@config-optional]", "true");<a name="line.228"></a>
+<FONT color="green">229</FONT>            assertTrue("Wrong value of optional attribute", decl.isOptional());<a name="line.229"></a>
+<FONT color="green">230</FONT>            factory.addProperty("xml[@optional]", "false");<a name="line.230"></a>
+<FONT color="green">231</FONT>            assertTrue("Wrong value of config-optional attribute", decl.isOptional());<a name="line.231"></a>
+<FONT color="green">232</FONT>            factory.clearProperty("xml[@config-optional]");<a name="line.232"></a>
+<FONT color="green">233</FONT>            factory.setProperty("xml[@optional]", Boolean.TRUE);<a name="line.233"></a>
+<FONT color="green">234</FONT>            assertTrue("Old optional attribute not detected", decl.isOptional());<a name="line.234"></a>
+<FONT color="green">235</FONT>        }<a name="line.235"></a>
+<FONT color="green">236</FONT>    <a name="line.236"></a>
+<FONT color="green">237</FONT>        /**<a name="line.237"></a>
+<FONT color="green">238</FONT>         * Tests whether an invalid value of an optional attribute is detected.<a name="line.238"></a>
+<FONT color="green">239</FONT>         */<a name="line.239"></a>
+<FONT color="green">240</FONT>        @Test(expected = ConfigurationRuntimeException.class)<a name="line.240"></a>
+<FONT color="green">241</FONT>        public void testConfigurationDeclarationOptionalAttributeInvalid()<a name="line.241"></a>
+<FONT color="green">242</FONT>        {<a name="line.242"></a>
+<FONT color="green">243</FONT>            factory.addProperty("xml.fileName", "test.xml");<a name="line.243"></a>
+<FONT color="green">244</FONT>            DefaultConfigurationBuilder.ConfigurationDeclaration decl = new DefaultConfigurationBuilder.ConfigurationDeclaration(<a name="line.244"></a>
+<FONT color="green">245</FONT>                    factory, factory.configurationAt("xml"));<a name="line.245"></a>
+<FONT color="green">246</FONT>            factory.setProperty("xml[@optional]", "invalid value");<a name="line.246"></a>
+<FONT color="green">247</FONT>            decl.isOptional();<a name="line.247"></a>
+<FONT color="green">248</FONT>        }<a name="line.248"></a>
+<FONT color="green">249</FONT>    <a name="line.249"></a>
+<FONT color="green">250</FONT>        /**<a name="line.250"></a>
+<FONT color="green">251</FONT>         * Tests adding a new configuration provider.<a name="line.251"></a>
+<FONT color="green">252</FONT>         */<a name="line.252"></a>
+<FONT color="green">253</FONT>        @Test<a name="line.253"></a>
+<FONT color="green">254</FONT>        public void testAddConfigurationProvider()<a name="line.254"></a>
+<FONT color="green">255</FONT>        {<a name="line.255"></a>
+<FONT color="green">256</FONT>            DefaultConfigurationBuilder.ConfigurationProvider provider = new DefaultConfigurationBuilder.ConfigurationProvider();<a name="line.256"></a>
+<FONT color="green">257</FONT>            assertNull("Provider already registered", factory<a name="line.257"></a>
+<FONT color="green">258</FONT>                    .providerForTag("test"));<a name="line.258"></a>
+<FONT color="green">259</FONT>            factory.addConfigurationProvider("test", provider);<a name="line.259"></a>
+<FONT color="green">260</FONT>            assertSame("Provider not registered", provider, factory<a name="line.260"></a>
+<FONT color="green">261</FONT>                    .providerForTag("test"));<a name="line.261"></a>
+<FONT color="green">262</FONT>        }<a name="line.262"></a>
+<FONT color="green">263</FONT>    <a name="line.263"></a>
+<FONT color="green">264</FONT>        /**<a name="line.264"></a>
+<FONT color="green">265</FONT>         * Tries to register a null configuration provider. This should cause an<a name="line.265"></a>
+<FONT color="green">266</FONT>         * exception.<a name="line.266"></a>
+<FONT color="green">267</FONT>         */<a name="line.267"></a>
+<FONT color="green">268</FONT>        @Test(expected = IllegalArgumentException.class)<a name="line.268"></a>
+<FONT color="green">269</FONT>        public void testAddConfigurationProviderNull()<a name="line.269"></a>
+<FONT color="green">270</FONT>        {<a name="line.270"></a>
+<FONT color="green">271</FONT>            factory.addConfigurationProvider("test", null);<a name="line.271"></a>
+<FONT color="green">272</FONT>        }<a name="line.272"></a>
+<FONT color="green">273</FONT>    <a name="line.273"></a>
+<FONT color="green">274</FONT>        /**<a name="line.274"></a>
+<FONT color="green">275</FONT>         * Tries to register a configuration provider for a null tag. This should<a name="line.275"></a>
+<FONT color="green">276</FONT>         * cause an exception to be thrown.<a name="line.276"></a>
+<FONT color="green">277</FONT>         */<a name="line.277"></a>
+<FONT color="green">278</FONT>        @Test(expected = IllegalArgumentException.class)<a name="line.278"></a>
+<FONT color="green">279</FONT>        public void testAddConfigurationProviderNullTag()<a name="line.279"></a>
+<FONT color="green">280</FONT>        {<a name="line.280"></a>
+<FONT color="green">281</FONT>            factory.addConfigurationProvider(null,<a name="line.281"></a>
+<FONT color="green">282</FONT>                   new DefaultConfigurationBuilder.ConfigurationProvider());<a name="line.282"></a>
+<FONT color="green">283</FONT>        }<a name="line.283"></a>
+<FONT color="green">284</FONT>    <a name="line.284"></a>
+<FONT color="green">285</FONT>        /**<a name="line.285"></a>
+<FONT color="green">286</FONT>         * Tests removing configuration providers.<a name="line.286"></a>
+<FONT color="green">287</FONT>         */<a name="line.287"></a>
+<FONT color="green">288</FONT>        @Test<a name="line.288"></a>
+<FONT color="green">289</FONT>        public void testRemoveConfigurationProvider()<a name="line.289"></a>
+<FONT color="green">290</FONT>        {<a name="line.290"></a>
+<FONT color="green">291</FONT>            assertNull("Removing unknown provider", factory<a name="line.291"></a>
+<FONT color="green">292</FONT>                    .removeConfigurationProvider("test"));<a name="line.292"></a>
+<FONT color="green">293</FONT>            assertNull("Removing provider for null tag", factory<a name="line.293"></a>
+<FONT color="green">294</FONT>                    .removeConfigurationProvider(null));<a name="line.294"></a>
+<FONT color="green">295</FONT>            DefaultConfigurationBuilder.ConfigurationProvider provider = new DefaultConfigurationBuilder.ConfigurationProvider();<a name="line.295"></a>
+<FONT color="green">296</FONT>            factory.addConfigurationProvider("test", provider);<a name="line.296"></a>
+<FONT color="green">297</FONT>            assertSame("Failed to remove provider", provider, factory<a name="line.297"></a>
+<FONT color="green">298</FONT>                    .removeConfigurationProvider("test"));<a name="line.298"></a>
+<FONT color="green">299</FONT>            assertNull("Provider still registered", factory.providerForTag("test"));<a name="line.299"></a>
+<FONT color="green">300</FONT>        }<a name="line.300"></a>
+<FONT color="green">301</FONT>    <a name="line.301"></a>
+<FONT color="green">302</FONT>        /**<a name="line.302"></a>
+<FONT color="green">303</FONT>         * Tests creating a configuration object from a configuration declaration.<a name="line.303"></a>
+<FONT color="green">304</FONT>         */<a name="line.304"></a>
+<FONT color="green">305</FONT>        @Test<a name="line.305"></a>
+<FONT color="green">306</FONT>        public void testConfigurationBeanFactoryCreateBean()<a name="line.306"></a>
+<FONT color="green">307</FONT>        {<a name="line.307"></a>
+<FONT color="green">308</FONT>            factory.addConfigurationProvider("test",<a name="line.308"></a>
+<FONT color="green">309</FONT>                    new DefaultConfigurationBuilder.ConfigurationProvider(<a name="line.309"></a>
+<FONT color="green">310</FONT>                            PropertiesConfiguration.class));<a name="line.310"></a>
+<FONT color="green">311</FONT>            factory.addProperty("test[@throwExceptionOnMissing]", "true");<a name="line.311"></a>
+<FONT color="green">312</FONT>            DefaultConfigurationBuilder.ConfigurationDeclaration decl = new DefaultConfigurationBuilder.ConfigurationDeclaration(<a name="line.312"></a>
+<FONT color="green">313</FONT>                    factory, factory.configurationAt("test"));<a name="line.313"></a>
+<FONT color="green">314</FONT>            PropertiesConfiguration conf = (PropertiesConfiguration) BeanHelper<a name="line.314"></a>
+<FONT color="green">315</FONT>                    .createBean(decl);<a name="line.315"></a>
+<FONT color="green">316</FONT>            assertTrue("Property was not initialized", conf<a name="line.316"></a>
+<FONT color="green">317</FONT>                    .isThrowExceptionOnMissing());<a name="line.317"></a>
+<FONT color="green">318</FONT>        }<a name="line.318"></a>
+<FONT color="green">319</FONT>    <a name="line.319"></a>
+<FONT color="green">320</FONT>        /**<a name="line.320"></a>
+<FONT color="green">321</FONT>         * Tests creating a configuration object from an unknown tag. This should<a name="line.321"></a>
+<FONT color="green">322</FONT>         * cause an exception.<a name="line.322"></a>
+<FONT color="green">323</FONT>         */<a name="line.323"></a>
+<FONT color="green">324</FONT>        @Test(expected = ConfigurationRuntimeException.class)<a name="line.324"></a>
+<FONT color="green">325</FONT>        public void testConfigurationBeanFactoryCreateUnknownTag()<a name="line.325"></a>
+<FONT color="green">326</FONT>        {<a name="line.326"></a>
+<FONT color="green">327</FONT>            factory.addProperty("test[@throwExceptionOnMissing]", "true");<a name="line.327"></a>
+<FONT color="green">328</FONT>            DefaultConfigurationBuilder.ConfigurationDeclaration decl = new DefaultConfigurationBuilder.ConfigurationDeclaration(<a name="line.328"></a>
+<FONT color="green">329</FONT>                    factory, factory.configurationAt("test"));<a name="line.329"></a>
+<FONT color="green">330</FONT>            BeanHelper.createBean(decl);<a name="line.330"></a>
+<FONT color="green">331</FONT>        }<a name="line.331"></a>
+<FONT color="green">332</FONT>    <a name="line.332"></a>
+<FONT color="green">333</FONT>        /**<a name="line.333"></a>
+<FONT color="green">334</FONT>         * Tests loading a simple configuration definition file.<a name="line.334"></a>
+<FONT color="green">335</FONT>         */<a name="line.335"></a>
+<FONT color="green">336</FONT>        @Test<a name="line.336"></a>
+<FONT color="green">337</FONT>        public void testLoadConfiguration() throws ConfigurationException<a name="line.337"></a>
+<FONT color="green">338</FONT>        {<a name="line.338"></a>
+<FONT color="green">339</FONT>            factory.setFile(TEST_FILE);<a name="line.339"></a>
+<FONT color="green">340</FONT>            checkConfiguration();<a name="line.340"></a>
+<FONT color="green">341</FONT>        }<a name="line.341"></a>
+<FONT color="green">342</FONT>    <a name="line.342"></a>
+<FONT color="green">343</FONT>        /**<a name="line.343"></a>
+<FONT color="green">344</FONT>         * Tests the file constructor.<a name="line.344"></a>
+<FONT color="green">345</FONT>         */<a name="line.345"></a>
+<FONT color="green">346</FONT>        @Test<a name="line.346"></a>
+<FONT color="green">347</FONT>        public void testLoadConfigurationFromFile() throws ConfigurationException<a name="line.347"></a>
+<FONT color="green">348</FONT>        {<a name="line.348"></a>
+<FONT color="green">349</FONT>            factory = new DefaultConfigurationBuilder(TEST_FILE);<a name="line.349"></a>
+<FONT color="green">350</FONT>            checkConfiguration();<a name="line.350"></a>
+<FONT color="green">351</FONT>        }<a name="line.351"></a>
+<FONT color="green">352</FONT>    <a name="line.352"></a>
+<FONT color="green">353</FONT>        /**<a name="line.353"></a>
+<FONT color="green">354</FONT>         * Tests the file name constructor.<a name="line.354"></a>
+<FONT color="green">355</FONT>         */<a name="line.355"></a>
+<FONT color="green">356</FONT>        @Test<a name="line.356"></a>
+<FONT color="green">357</FONT>        public void testLoadConfigurationFromFileName()<a name="line.357"></a>
+<FONT color="green">358</FONT>                throws ConfigurationException<a name="line.358"></a>
+<FONT color="green">359</FONT>        {<a name="line.359"></a>
+<FONT color="green">360</FONT>            factory = new DefaultConfigurationBuilder(TEST_FILE.getAbsolutePath());<a name="line.360"></a>
+<FONT color="green">361</FONT>            checkConfiguration();<a name="line.361"></a>
+<FONT color="green">362</FONT>        }<a name="line.362"></a>
+<FONT color="green">363</FONT>    <a name="line.363"></a>
+<FONT color="green">364</FONT>        /**<a name="line.364"></a>
+<FONT color="green">365</FONT>         * Tests the URL constructor.<a name="line.365"></a>
+<FONT color="green">366</FONT>         */<a name="line.366"></a>
+<FONT color="green">367</FONT>        @Test<a name="line.367"></a>
+<FONT color="green">368</FONT>        public void testLoadConfigurationFromURL() throws Exception<a name="line.368"></a>
+<FONT color="green">369</FONT>        {<a name="line.369"></a>
+<FONT color="green">370</FONT>            factory = new DefaultConfigurationBuilder(TEST_FILE.toURI().toURL());<a name="line.370"></a>
+<FONT color="green">371</FONT>            checkConfiguration();<a name="line.371"></a>
+<FONT color="green">372</FONT>        }<a name="line.372"></a>
+<FONT color="green">373</FONT>    <a name="line.373"></a>
+<FONT color="green">374</FONT>        /**<a name="line.374"></a>
+<FONT color="green">375</FONT>         * Tests if the configuration was correctly created by the factory.<a name="line.375"></a>
+<FONT color="green">376</FONT>         */<a name="line.376"></a>
+<FONT color="green">377</FONT>        private void checkConfiguration() throws ConfigurationException<a name="line.377"></a>
+<FONT color="green">378</FONT>        {<a name="line.378"></a>
+<FONT color="green">379</FONT>            CombinedConfiguration compositeConfiguration = (CombinedConfiguration) factory<a name="line.379"></a>
+<FONT color="green">380</FONT>                    .getConfiguration();<a name="line.380"></a>
+<FONT color="green">381</FONT>    <a name="line.381"></a>
+<FONT color="green">382</FONT>            assertEquals("Number of configurations", 3, compositeConfiguration<a name="line.382"></a>
+<FONT color="green">383</FONT>                    .getNumberOfConfigurations());<a name="line.383"></a>
+<FONT color="green">384</FONT>            assertEquals(PropertiesConfiguration.class, compositeConfiguration<a name="line.384"></a>
+<FONT color="green">385</FONT>                    .getConfiguration(0).getClass());<a name="line.385"></a>
+<FONT color="green">386</FONT>            assertEquals(XMLPropertiesConfiguration.class, compositeConfiguration<a name="line.386"></a>
+<FONT color="green">387</FONT>                    .getConfiguration(1).getClass());<a name="line.387"></a>
+<FONT color="green">388</FONT>            assertEquals(XMLConfiguration.class, compositeConfiguration<a name="line.388"></a>
+<FONT color="green">389</FONT>                    .getConfiguration(2).getClass());<a name="line.389"></a>
+<FONT color="green">390</FONT>    <a name="line.390"></a>
+<FONT color="green">391</FONT>            // check the first configuration<a name="line.391"></a>
+<FONT color="green">392</FONT>            PropertiesConfiguration pc = (PropertiesConfiguration) compositeConfiguration<a name="line.392"></a>
+<FONT color="green">393</FONT>                    .getConfiguration(0);<a name="line.393"></a>
+<FONT color="green">394</FONT>            assertNotNull("Make sure we have a fileName: " + pc.getFileName(), pc<a name="line.394"></a>
+<FONT color="green">395</FONT>                    .getFileName());<a name="line.395"></a>
+<FONT color="green">396</FONT>    <a name="line.396"></a>
+<FONT color="green">397</FONT>            // check some properties<a name="line.397"></a>
+<FONT color="green">398</FONT>            checkProperties(compositeConfiguration);<a name="line.398"></a>
+<FONT color="green">399</FONT>        }<a name="line.399"></a>
+<FONT color="green">400</FONT>    <a name="line.400"></a>
+<FONT color="green">401</FONT>        /**<a name="line.401"></a>
+<FONT color="green">402</FONT>         * Checks if the passed in configuration contains the expected properties.<a name="line.402"></a>
+<FONT color="green">403</FONT>         *<a name="line.403"></a>
+<FONT color="green">404</FONT>         * @param compositeConfiguration the configuration to check<a name="line.404"></a>
+<FONT color="green">405</FONT>         */<a name="line.405"></a>
+<FONT color="green">406</FONT>        private void checkProperties(Configuration compositeConfiguration)<a name="line.406"></a>
+<FONT color="green">407</FONT>        {<a name="line.407"></a>
+<FONT color="green">408</FONT>            assertTrue("Make sure we have loaded our key", compositeConfiguration<a name="line.408"></a>
+<FONT color="green">409</FONT>                    .getBoolean("test.boolean"));<a name="line.409"></a>
+<FONT color="green">410</FONT>            assertEquals("I'm complex!", compositeConfiguration<a name="line.410"></a>
+<FONT color="green">411</FONT>                    .getProperty("element2.subelement.subsubelement"));<a name="line.411"></a>
+<FONT color="green">412</FONT>            assertEquals("property in the XMLPropertiesConfiguration", "value1",<a name="line.412"></a>
+<FONT color="green">413</FONT>                    compositeConfiguration.getProperty("key1"));<a name="line.413"></a>
+<FONT color="green">414</FONT>        }<a name="line.414"></a>
+<FONT color="green">415</FONT>    <a name="line.415"></a>
+<FONT color="green">416</FONT>        /**<a name="line.416"></a>
+<FONT color="green">417</FONT>         * Tests loading a configuration definition file with an additional section.<a name="line.417"></a>
+<FONT color="green">418</FONT>         */<a name="line.418"></a>
+<FONT color="green">419</FONT>        @Test<a name="line.419"></a>
+<FONT color="green">420</FONT>        public void testLoadAdditional() throws ConfigurationException<a name="line.420"></a>
+<FONT color="green">421</FONT>        {<a name="line.421"></a>
+<FONT color="green">422</FONT>            factory.setFile(ADDITIONAL_FILE);<a name="line.422"></a>
+<FONT color="green">423</FONT>            CombinedConfiguration compositeConfiguration = (CombinedConfiguration) factory<a name="line.423"></a>
+<FONT color="green">424</FONT>                    .getConfiguration();<a name="line.424"></a>
+<FONT color="green">425</FONT>            assertEquals("Verify how many configs", 2, compositeConfiguration<a name="line.425"></a>
+<FONT color="green">426</FONT>                    .getNumberOfConfigurations());<a name="line.426"></a>
+<FONT color="green">427</FONT>    <a name="line.427"></a>
+<FONT color="green">428</FONT>            // Test if union was constructed correctly<a name="line.428"></a>
+<FONT color="green">429</FONT>            Object prop = compositeConfiguration.getProperty("tables.table.name");<a name="line.429"></a>
+<FONT color="green">430</FONT>            assertTrue(prop instanceof Collection);<a name="line.430"></a>
+<FONT color="green">431</FONT>            assertEquals(3, ((Collection&lt;?&gt;) prop).size());<a name="line.431"></a>
+<FONT color="green">432</FONT>            assertEquals("users", compositeConfiguration<a name="line.432"></a>
+<FONT color="green">433</FONT>                    .getProperty("tables.table(0).name"));<a name="line.433"></a>
+<FONT color="green">434</FONT>            assertEquals("documents", compositeConfiguration<a name="line.434"></a>
+<FONT color="green">435</FONT>                    .getProperty("tables.table(1).name"));<a name="line.435"></a>
+<FONT color="green">436</FONT>            assertEquals("tasks", compositeConfiguration<a name="line.436"></a>
+<FONT color="green">437</FONT>                    .getProperty("tables.table(2).name"));<a name="line.437"></a>
+<FONT color="green">438</FONT>    <a name="line.438"></a>
+<FONT color="green">439</FONT>            prop = compositeConfiguration<a name="line.439"></a>
+<FONT color="green">440</FONT>                    .getProperty("tables.table.fields.field.name");<a name="line.440"></a>
+<FONT color="green">441</FONT>            assertTrue(prop instanceof Collection);<a name="line.441"></a>
+<FONT color="green">442</FONT>            assertEquals(17, ((Collection&lt;?&gt;) prop).size());<a name="line.442"></a>
+<FONT color="green">443</FONT>    <a name="line.443"></a>
+<FONT color="green">444</FONT>            assertEquals("smtp.mydomain.org", compositeConfiguration<a name="line.444"></a>
+<FONT color="green">445</FONT>                    .getString("mail.host.smtp"));<a name="line.445"></a>
+<FONT color="green">446</FONT>            assertEquals("pop3.mydomain.org", compositeConfiguration<a name="line.446"></a>
+<FONT color="green">447</FONT>                    .getString("mail.host.pop"));<a name="line.447"></a>
+<FONT color="green">448</FONT>    <a name="line.448"></a>
+<FONT color="green">449</FONT>            // This was overridden<a name="line.449"></a>
+<FONT color="green">450</FONT>            assertEquals("masterOfPost", compositeConfiguration<a name="line.450"></a>
+<FONT color="green">451</FONT>                    .getString("mail.account.user"));<a name="line.451"></a>
+<FONT color="green">452</FONT>            assertEquals("topsecret", compositeConfiguration<a name="line.452"></a>
+<FONT color="green">453</FONT>                    .getString("mail.account.psswd"));<a name="line.453"></a>
+<FONT color="green">454</FONT>    <a name="line.454"></a>
+<FONT color="green">455</FONT>            // This was overridden, too, but not in additional section<a name="line.455"></a>
+<FONT color="green">456</FONT>            assertEquals("enhanced factory", compositeConfiguration<a name="line.456"></a>
+<FONT color="green">457</FONT>                    .getString("test.configuration"));<a name="line.457"></a>
+<FONT color="green">458</FONT>        }<a name="line.458"></a>
+<FONT color="green">459</FONT>    <a name="line.459"></a>
+<FONT color="green">460</FONT>        /**<a name="line.460"></a>
+<FONT color="green">461</FONT>         * Tests whether a default log error listener is registered at the builder<a name="line.461"></a>
+<FONT color="green">462</FONT>         * instance.<a name="line.462"></a>
+<FONT color="green">463</FONT>         */<a name="line.463"></a>
+<FONT color="green">464</FONT>        @Test<a name="line.464"></a>
+<FONT color="green">465</FONT>        public void testLogErrorListener()<a name="line.465"></a>
+<FONT color="green">466</FONT>        {<a name="line.466"></a>
+<FONT color="green">467</FONT>            assertEquals("No default error listener registered", 1,<a name="line.467"></a>
+<FONT color="green">468</FONT>                    new DefaultConfigurationBuilder().getErrorListeners().size());<a name="line.468"></a>
+<FONT color="green">469</FONT>        }<a name="line.469"></a>
+<FONT color="green">470</FONT>    <a name="line.470"></a>
+<FONT color="green">471</FONT>        /**<a name="line.471"></a>
+<FONT color="green">472</FONT>         * Tests loading a definition file that contains optional configurations.<a name="line.472"></a>
+<FONT color="green">473</FONT>         */<a name="line.473"></a>
+<FONT color="green">474</FONT>        @Test<a name="line.474"></a>
+<FONT color="green">475</FONT>        public void testLoadOptional() throws Exception<a name="line.475"></a>
+<FONT color="green">476</FONT>        {<a name="line.476"></a>
+<FONT color="green">477</FONT>            factory.setURL(OPTIONAL_FILE.toURI().toURL());<a name="line.477"></a>
+<FONT color="green">478</FONT>            Configuration config = factory.getConfiguration();<a name="line.478"></a>
+<FONT color="green">479</FONT>            assertTrue(config.getBoolean("test.boolean"));<a name="line.479"></a>
+<FONT color="green">480</FONT>            assertEquals("value", config.getProperty("element"));<a name="line.480"></a>
+<FONT color="green">481</FONT>        }<a name="line.481"></a>
+<FONT color="green">482</FONT>    <a name="line.482"></a>
+<FONT color="green">483</FONT>        /**<a name="line.483"></a>
+<FONT color="green">484</FONT>         * Tests whether loading a failing optional configuration causes an error<a name="line.484"></a>
+<FONT color="green">485</FONT>         * event.<a name="line.485"></a>
+<FONT color="green">486</FONT>         */<a name="line.486"></a>
+<FONT color="green">487</FONT>        @Test<a name="line.487"></a>
+<FONT color="green">488</FONT>        public void testLoadOptionalErrorEvent() throws Exception<a name="line.488"></a>
+<FONT color="green">489</FONT>        {<a name="line.489"></a>
+<FONT color="green">490</FONT>            factory.clearErrorListeners();<a name="line.490"></a>
+<FONT color="green">491</FONT>            ConfigurationErrorListenerImpl listener = new ConfigurationErrorListenerImpl();<a name="line.491"></a>
+<FONT color="green">492</FONT>            factory.addErrorListener(listener);<a name="line.492"></a>
+<FONT color="green">493</FONT>            prepareOptionalTest("configuration", false);<a name="line.493"></a>
+<FONT color="green">494</FONT>            listener.verify(DefaultConfigurationBuilder.EVENT_ERR_LOAD_OPTIONAL,<a name="line.494"></a>
+<FONT color="green">495</FONT>                    OPTIONAL_NAME, null);<a name="line.495"></a>
+<FONT color="green">496</FONT>        }<a name="line.496"></a>
+<FONT color="green">497</FONT>    <a name="line.497"></a>
+<FONT color="green">498</FONT>        /**<a name="line.498"></a>
+<FONT color="green">499</FONT>         * Tests loading a definition file with optional and non optional<a name="line.499"></a>
+<FONT color="green">500</FONT>         * configuration sources. One non optional does not exist, so this should<a name="line.500"></a>
+<FONT color="green">501</FONT>         * cause an exception.<a name="line.501"></a>
+<FONT color="green">502</FONT>         */<a name="line.502"></a>
+<FONT color="green">503</FONT>        @Test(expected = ConfigurationException.class)<a name="line.503"></a>
+<FONT color="green">504</FONT>        public void testLoadOptionalWithException() throws ConfigurationException<a name="line.504"></a>
+<FONT color="green">505</FONT>        {<a name="line.505"></a>
+<FONT color="green">506</FONT>            factory.setFile(OPTIONALEX_FILE);<a name="line.506"></a>
+<FONT color="green">507</FONT>            factory.getConfiguration();<a name="line.507"></a>
+<FONT color="green">508</FONT>        }<a name="line.508"></a>
+<FONT color="green">509</FONT>    <a name="line.509"></a>
+<FONT color="green">510</FONT>        /**<a name="line.510"></a>
+<FONT color="green">511</FONT>         * Tries to load a configuration file with an optional, non file-based<a name="line.511"></a>
+<FONT color="green">512</FONT>         * configuration. The optional attribute should work for other configuration<a name="line.512"></a>
+<FONT color="green">513</FONT>         * classes, too.<a name="line.513"></a>
+<FONT color="green">514</FONT>         */<a name="line.514"></a>
+<FONT color="green">515</FONT>        @Test<a name="line.515"></a>
+<FONT color="green">516</FONT>        public void testLoadOptionalNonFileBased() throws ConfigurationException<a name="line.516"></a>
+<FONT color="green">517</FONT>        {<a name="line.517"></a>
+<FONT color="green">518</FONT>            CombinedConfiguration config = prepareOptionalTest("configuration", false);<a name="line.518"></a>
+<FONT color="green">519</FONT>            assertTrue("Configuration not empty", config.isEmpty());<a name="line.519"></a>
+<FONT color="green">520</FONT>            assertEquals("Wrong number of configurations", 0, config<a name="line.520"></a>
+<FONT color="green">521</FONT>                    .getNumberOfConfigurations());<a name="line.521"></a>
+<FONT color="green">522</FONT>        }<a name="line.522"></a>
+<FONT color="green">523</FONT>    <a name="line.523"></a>
+<FONT color="green">524</FONT>        /**<a name="line.524"></a>
+<FONT color="green">525</FONT>         * Tests an optional, non existing configuration with the forceCreate<a name="line.525"></a>
+<FONT color="green">526</FONT>         * attribute. This configuration should be added to the resulting<a name="line.526"></a>
+<FONT color="green">527</FONT>         * configuration.<a name="line.527"></a>
+<FONT color="green">528</FONT>         */<a name="line.528"></a>
+<FONT color="green">529</FONT>        @Test<a name="line.529"></a>
+<FONT color="green">530</FONT>        public void testLoadOptionalForceCreate() throws ConfigurationException<a name="line.530"></a>
+<FONT color="green">531</FONT>        {<a name="line.531"></a>
+<FONT color="green">532</FONT>            factory.setBasePath(TEST_FILE.getParent());<a name="line.532"></a>
+<FONT color="green">533</FONT>            CombinedConfiguration config = prepareOptionalTest("xml", true);<a name="line.533"></a>
+<FONT color="green">534</FONT>            assertEquals("Wrong number of configurations", 1, config<a name="line.534"></a>
+<FONT color="green">535</FONT>                    .getNumberOfConfigurations());<a name="line.535"></a>
+<FONT color="green">536</FONT>            FileConfiguration fc = (FileConfiguration) config<a name="line.536"></a>
+<FONT color="green">537</FONT>                    .getConfiguration(OPTIONAL_NAME);<a name="line.537"></a>
+<FONT color="green">538</FONT>            assertNotNull("Optional config not found", fc);<a name="line.538"></a>
+<FONT color="green">539</FONT>            assertEquals("File name was not set", "nonExisting.xml", fc<a name="line.539"></a>
+<FONT color="green">540</FONT>                    .getFileName());<a name="line.540"></a>
+<FONT color="green">541</FONT>            assertNotNull("Base path was not set", fc.getBasePath());<a name="line.541"></a>
+<FONT color="green">542</FONT>        }<a name="line.542"></a>
+<FONT color="green">543</FONT>    <a name="line.543"></a>
+<FONT color="green">544</FONT>        /**<a name="line.544"></a>
+<FONT color="green">545</FONT>         * Tests loading an embedded optional configuration builder with the force<a name="line.545"></a>
+<FONT color="green">546</FONT>         * create attribute.<a name="line.546"></a>
+<FONT color="green">547</FONT>         */<a name="line.547"></a>
+<FONT color="green">548</FONT>        @Test<a name="line.548"></a>
+<FONT color="green">549</FONT>        public void testLoadOptionalBuilderForceCreate()<a name="line.549"></a>
+<FONT color="green">550</FONT>                throws ConfigurationException<a name="line.550"></a>
+<FONT color="green">551</FONT>        {<a name="line.551"></a>
+<FONT color="green">552</FONT>            CombinedConfiguration config = prepareOptionalTest("configuration",<a name="line.552"></a>
+<FONT color="green">553</FONT>                    true);<a name="line.553"></a>
+<FONT color="green">554</FONT>            assertEquals("Wrong number of configurations", 1, config<a name="line.554"></a>
+<FONT color="green">555</FONT>                    .getNumberOfConfigurations());<a name="line.555"></a>
+<FONT color="green">556</FONT>            assertTrue(<a name="line.556"></a>
+<FONT color="green">557</FONT>                    "Wrong optional configuration type",<a name="line.557"></a>
+<FONT color="green">558</FONT>                    config.getConfiguration(OPTIONAL_NAME) instanceof CombinedConfiguration);<a name="line.558"></a>
+<FONT color="green">559</FONT>        }<a name="line.559"></a>
+<FONT color="green">560</FONT>    <a name="line.560"></a>
+<FONT color="green">561</FONT>        /**<a name="line.561"></a>
+<FONT color="green">562</FONT>         * Tests loading an optional configuration with the force create attribute<a name="line.562"></a>
+<FONT color="green">563</FONT>         * set. The provider will always throw an exception. In this case the<a name="line.563"></a>
+<FONT color="green">564</FONT>         * configuration will not be added to the resulting combined configuration.<a name="line.564"></a>
+<FONT color="green">565</FONT>         */<a name="line.565"></a>
+<FONT color="green">566</FONT>        @Test<a name="line.566"></a>
+<FONT color="green">567</FONT>        public void testLoadOptionalForceCreateWithException()<a name="line.567"></a>
+<FONT color="green">568</FONT>                throws ConfigurationException<a name="line.568"></a>
+<FONT color="green">569</FONT>        {<a name="line.569"></a>
+<FONT color="green">570</FONT>            factory.addConfigurationProvider("test",<a name="line.570"></a>
+<FONT color="green">571</FONT>                    new DefaultConfigurationBuilder.ConfigurationBuilderProvider()<a name="line.571"></a>
+<FONT color="green">572</FONT>                    {<a name="line.572"></a>
+<FONT color="green">573</FONT>                        // Throw an exception here, too<a name="line.573"></a>
+<FONT color="green">574</FONT>                        @Override<a name="line.574"></a>
+<FONT color="green">575</FONT>                        public AbstractConfiguration getEmptyConfiguration(<a name="line.575"></a>
+<FONT color="green">576</FONT>                                DefaultConfigurationBuilder.ConfigurationDeclaration decl) throws Exception<a name="line.576"></a>
+<FONT color="green">577</FONT>                        {<a name="line.577"></a>
+<FONT color="green">578</FONT>                            throw new Exception("Unable to create configuration!");<a name="line.578"></a>
+<FONT color="green">579</FONT>                        }<a name="line.579"></a>
+<FONT color="green">580</FONT>                    });<a name="line.580"></a>
+<FONT color="green">581</FONT>            CombinedConfiguration config = prepareOptionalTest("test", true);<a name="line.581"></a>
+<FONT color="green">582</FONT>            assertEquals("Optional configuration could be created", 0, config<a name="line.582"></a>
+<FONT color="green">583</FONT>                    .getNumberOfConfigurations());<a name="line.583"></a>
+<FONT color="green">584</FONT>        }<a name="line.584"></a>
+<FONT color="green">585</FONT>    <a name="line.585"></a>
+<FONT color="green">586</FONT>        /**<a name="line.586"></a>
+<FONT color="green">587</FONT>         * Prepares a test for loading a configuration definition file with an<a name="line.587"></a>
+<FONT color="green">588</FONT>         * optional configuration declaration.<a name="line.588"></a>
+<FONT color="green">589</FONT>         *<a name="line.589"></a>
+<FONT color="green">590</FONT>         * @param tag the tag name with the optional configuration<a name="line.590"></a>
+<FONT color="green">591</FONT>         * @param force the forceCreate attribute<a name="line.591"></a>
+<FONT color="green">592</FONT>         * @return the combined configuration obtained from the builder<a name="line.592"></a>
+<FONT color="green">593</FONT>         * @throws org.apache.commons.configuration.ConfigurationException if an error occurs<a name="line.593"></a>
+<FONT color="green">594</FONT>         */<a name="line.594"></a>
+<FONT color="green">595</FONT>        private CombinedConfiguration prepareOptionalTest(String tag, boolean force)<a name="line.595"></a>
+<FONT color="green">596</FONT>                throws ConfigurationException<a name="line.596"></a>
+<FONT color="green">597</FONT>        {<a name="line.597"></a>
+<FONT color="green">598</FONT>            String prefix = "override." + tag;<a name="line.598"></a>
+<FONT color="green">599</FONT>            factory.addProperty(prefix + "[@fileName]", "nonExisting.xml");<a name="line.599"></a>
+<FONT color="green">600</FONT>            factory.addProperty(prefix + "[@config-optional]", Boolean.TRUE);<a name="line.600"></a>
+<FONT color="green">601</FONT>            factory.addProperty(prefix + "[@config-name]", OPTIONAL_NAME);<a name="line.601"></a>
+<FONT color="green">602</FONT>            if (force)<a name="line.602"></a>
+<FONT color="green">603</FONT>            {<a name="line.603"></a>
+<FONT color="green">604</FONT>                factory.addProperty(prefix + "[@config-forceCreate]", Boolean.TRUE);<a name="line.604"></a>
+<FONT color="green">605</FONT>            }<a name="line.605"></a>
+<FONT color="green">606</FONT>            return factory.getConfiguration(false);<a name="line.606"></a>
+<FONT color="green">607</FONT>        }<a name="line.607"></a>
+<FONT color="green">608</FONT>    <a name="line.608"></a>
+<FONT color="green">609</FONT>        /**<a name="line.609"></a>
+<FONT color="green">610</FONT>         * Tests loading a definition file with multiple different sources.<a name="line.610"></a>
+<FONT color="green">611</FONT>         */<a name="line.611"></a>
+<FONT color="green">612</FONT>        @Test<a name="line.612"></a>
+<FONT color="green">613</FONT>        public void testLoadDifferentSources() throws ConfigurationException<a name="line.613"></a>
+<FONT color="green">614</FONT>        {<a name="line.614"></a>
+<FONT color="green">615</FONT>            factory.setFile(MULTI_FILE);<a name="line.615"></a>
+<FONT color="green">616</FONT>            Configuration config = factory.getConfiguration();<a name="line.616"></a>
+<FONT color="green">617</FONT>            assertFalse(config.isEmpty());<a name="line.617"></a>
+<FONT color="green">618</FONT>            assertTrue(config instanceof CombinedConfiguration);<a name="line.618"></a>
+<FONT color="green">619</FONT>            CombinedConfiguration cc = (CombinedConfiguration) config;<a name="line.619"></a>
+<FONT color="green">620</FONT>            assertEquals("Wrong number of configurations", 1, cc<a name="line.620"></a>
+<FONT color="green">621</FONT>                    .getNumberOfConfigurations());<a name="line.621"></a>
+<FONT color="green">622</FONT>    <a name="line.622"></a>
+<FONT color="green">623</FONT>            assertNotNull(config<a name="line.623"></a>
+<FONT color="green">624</FONT>                    .getProperty("tables.table(0).fields.field(2).name"));<a name="line.624"></a>
+<FONT color="green">625</FONT>            assertNotNull(config.getProperty("element2.subelement.subsubelement"));<a name="line.625"></a>
+<FONT color="green">626</FONT>            assertEquals("value", config.getProperty("element3"));<a name="line.626"></a>
+<FONT color="green">627</FONT>            assertEquals("foo", config.getProperty("element3[@name]"));<a name="line.627"></a>
+<FONT color="green">628</FONT>            assertNotNull(config.getProperty("mail.account.user"));<a name="line.628"></a>
+<FONT color="green">629</FONT>    <a name="line.629"></a>
+<FONT color="green">630</FONT>            // test JNDIConfiguration<a name="line.630"></a>
+<FONT color="green">631</FONT>            assertNotNull(config.getProperty("test.onlyinjndi"));<a name="line.631"></a>
+<FONT color="green">632</FONT>            assertTrue(config.getBoolean("test.onlyinjndi"));<a name="line.632"></a>
+<FONT color="green">633</FONT>    <a name="line.633"></a>
+<FONT color="green">634</FONT>            Configuration subset = config.subset("test");<a name="line.634"></a>
+<FONT color="green">635</FONT>            assertNotNull(subset.getProperty("onlyinjndi"));<a name="line.635"></a>
+<FONT color="green">636</FONT>            assertTrue(subset.getBoolean("onlyinjndi"));<a name="line.636"></a>
+<FONT color="green">637</FONT>    <a name="line.637"></a>
+<FONT color="green">638</FONT>            // test SystemConfiguration<a name="line.638"></a>
+<FONT color="green">639</FONT>            assertNotNull(config.getProperty("java.version"));<a name="line.639"></a>
+<FONT color="green">640</FONT>            assertEquals(System.getProperty("java.version"), config<a name="line.640"></a>
+<FONT color="green">641</FONT>                    .getString("java.version"));<a name="line.641"></a>
+<FONT color="green">642</FONT>        }<a name="line.642"></a>
+<FONT color="green">643</FONT>    <a name="line.643"></a>
+<FONT color="green">644</FONT>        /**<a name="line.644"></a>
+<FONT color="green">645</FONT>         * Tests if the base path is correctly evaluated.<a name="line.645"></a>
+<FONT color="green">646</FONT>         */<a name="line.646"></a>
+<FONT color="green">647</FONT>        @Test<a name="line.647"></a>
+<FONT color="green">648</FONT>        public void testSetConfigurationBasePath() throws ConfigurationException<a name="line.648"></a>
+<FONT color="green">649</FONT>        {<a name="line.649"></a>
+<FONT color="green">650</FONT>            factory.addProperty("properties[@fileName]", "test.properties");<a name="line.650"></a>
+<FONT color="green">651</FONT>            File deepDir = new File(ConfigurationAssert.TEST_DIR, "config/deep");<a name="line.651"></a>
+<FONT color="green">652</FONT>            factory.setConfigurationBasePath(deepDir.getAbsolutePath());<a name="line.652"></a>
+<FONT color="green">653</FONT>    <a name="line.653"></a>
+<FONT color="green">654</FONT>            Configuration config = factory.getConfiguration(false);<a name="line.654"></a>
+<FONT color="green">655</FONT>            assertEquals("Wrong property value", "somevalue", config<a name="line.655"></a>
+<FONT color="green">656</FONT>                    .getString("somekey"));<a name="line.656"></a>
+<FONT color="green">657</FONT>        }<a name="line.657"></a>
+<FONT color="green">658</FONT>    <a name="line.658"></a>
+<FONT color="green">659</FONT>        /**<a name="line.659"></a>
+<FONT color="green">660</FONT>         * Tests reading a configuration definition file that contains complex<a name="line.660"></a>
+<FONT color="green">661</FONT>         * initialization of properties of the declared configuration sources.<a name="line.661"></a>
+<FONT color="green">662</FONT>         */<a name="line.662"></a>
+<FONT color="green">663</FONT>        @Test<a name="line.663"></a>
+<FONT color="green">664</FONT>        public void testComplexInitialization() throws ConfigurationException<a name="line.664"></a>
+<FONT color="green">665</FONT>        {<a name="line.665"></a>
+<FONT color="green">666</FONT>            factory.setFile(INIT_FILE);<a name="line.666"></a>
+<FONT color="green">667</FONT>            CombinedConfiguration cc = (CombinedConfiguration) factory<a name="line.667"></a>
+<FONT color="green">668</FONT>                    .getConfiguration();<a name="line.668"></a>
+<FONT color="green">669</FONT>    <a name="line.669"></a>
+<FONT color="green">670</FONT>            assertEquals("System property not found", "test.xml",<a name="line.670"></a>
+<FONT color="green">671</FONT>                    cc.getString("test_file_xml"));<a name="line.671"></a>
+<FONT color="green">672</FONT>            PropertiesConfiguration c1 = (PropertiesConfiguration) cc<a name="line.672"></a>
+<FONT color="green">673</FONT>                    .getConfiguration(1);<a name="line.673"></a>
+<FONT color="green">674</FONT>            assertTrue(<a name="line.674"></a>
+<FONT color="green">675</FONT>                    "Reloading strategy was not set",<a name="line.675"></a>
+<FONT color="green">676</FONT>                    c1.getReloadingStrategy() instanceof FileChangedReloadingStrategy);<a name="line.676"></a>
+<FONT color="green">677</FONT>            assertEquals("Refresh delay was not set", 10000,<a name="line.677"></a>
+<FONT color="green">678</FONT>                    ((FileChangedReloadingStrategy) c1.getReloadingStrategy())<a name="line.678"></a>
+<FONT color="green">679</FONT>                            .getRefreshDelay());<a name="line.679"></a>
+<FONT color="green">680</FONT>    <a name="line.680"></a>
+<FONT color="green">681</FONT>            Configuration xmlConf = cc.getConfiguration("xml");<a name="line.681"></a>
+<FONT color="green">682</FONT>            assertEquals("Property not found", "I'm complex!", xmlConf<a name="line.682"></a>
+<FONT color="green">683</FONT>                    .getString("element2/subelement/subsubelement"));<a name="line.683"></a>
+<FONT color="green">684</FONT>            assertEquals("List index not found", "two", xmlConf<a name="line.684"></a>
+<FONT color="green">685</FONT>                    .getString("list[0]/item[1]"));<a name="line.685"></a>
+<FONT color="green">686</FONT>            assertEquals("Property in combiner file not found", "yellow", cc<a name="line.686"></a>
+<FONT color="green">687</FONT>                    .getString("/gui/selcolor"));<a name="line.687"></a>
+<FONT color="green">688</FONT>    <a name="line.688"></a>
+<FONT color="green">689</FONT>            assertTrue("Delimiter flag was not set", cc<a name="line.689"></a>
+<FONT color="green">690</FONT>                    .isDelimiterParsingDisabled());<a name="line.690"></a>
+<FONT color="green">691</FONT>            assertTrue("Expression engine was not set",<a name="line.691"></a>
+<FONT color="green">692</FONT>                    cc.getExpressionEngine() instanceof XPathExpressionEngine);<a name="line.692"></a>
+<FONT color="green">693</FONT>        }<a name="line.693"></a>
+<FONT color="green">694</FONT>    <a name="line.694"></a>
+<FONT color="green">695</FONT>        /**<a name="line.695"></a>
+<FONT color="green">696</FONT>         * Tests if the returned combined configuration has the expected structure.<a name="line.696"></a>
+<FONT color="green">697</FONT>         */<a name="line.697"></a>
+<FONT color="green">698</FONT>        @Test<a name="line.698"></a>
+<FONT color="green">699</FONT>        public void testCombinedConfiguration() throws ConfigurationException<a name="line.699"></a>
+<FONT color="green">700</FONT>        {<a name="line.700"></a>
+<FONT color="green">701</FONT>            factory.setFile(INIT_FILE);<a name="line.701"></a>
+<FONT color="green">702</FONT>            CombinedConfiguration cc = (CombinedConfiguration) factory<a name="line.702"></a>
+<FONT color="green">703</FONT>                    .getConfiguration();<a name="line.703"></a>
+<FONT color="green">704</FONT>            assertNotNull("Properties configuration not found", cc<a name="line.704"></a>
+<FONT color="green">705</FONT>                    .getConfiguration("properties"));<a name="line.705"></a>
+<FONT color="green">706</FONT>            assertNotNull("XML configuration not found", cc.getConfiguration("xml"));<a name="line.706"></a>
+<FONT color="green">707</FONT>            assertEquals("Wrong number of contained configs", 4, cc<a name="line.707"></a>
+<FONT color="green">708</FONT>                    .getNumberOfConfigurations());<a name="line.708"></a>
+<FONT color="green">709</FONT>    <a name="line.709"></a>
+<FONT color="green">710</FONT>            CombinedConfiguration cc2 = (CombinedConfiguration) cc<a name="line.710"></a>
+<FONT color="green">711</FONT>                    .getConfiguration(DefaultConfigurationBuilder.ADDITIONAL_NAME);<a name="line.711"></a>
+<FONT color="green">712</FONT>            assertNotNull("No additional configuration found", cc2);<a name="line.712"></a>
+<FONT color="green">713</FONT>            Set&lt;String&gt; names = cc2.getConfigurationNames();<a name="line.713"></a>
+<FONT color="green">714</FONT>            assertEquals("Wrong number of contained additional configs", 2, names<a name="line.714"></a>
+<FONT color="green">715</FONT>                    .size());<a name="line.715"></a>
+<FONT color="green">716</FONT>            assertTrue("Config 1 not contained", names.contains("combiner1"));<a name="line.716"></a>
+<FONT color="green">717</FONT>            assertTrue("Config 2 not contained", names.contains("combiner2"));<a name="line.717"></a>
+<FONT color="green">718</FONT>        }<a name="line.718"></a>
+<FONT color="green">719</FONT>    <a name="line.719"></a>
+<FONT color="green">720</FONT>        /**<a name="line.720"></a>
+<FONT color="green">721</FONT>         * Tests the structure of the returned combined configuration if there is no<a name="line.721"></a>
+<FONT color="green">722</FONT>         * additional section.<a name="line.722"></a>
+<FONT color="green">723</FONT>         */<a name="line.723"></a>
+<FONT color="green">724</FONT>        @Test<a name="line.724"></a>
+<FONT color="green">725</FONT>        public void testCombinedConfigurationNoAdditional()<a name="line.725"></a>
+<FONT color="green">726</FONT>                throws ConfigurationException<a name="line.726"></a>
+<FONT color="green">727</FONT>        {<a name="line.727"></a>
+<FONT color="green">728</FONT>            factory.setFile(TEST_FILE);<a name="line.728"></a>
+<FONT color="green">729</FONT>            CombinedConfiguration cc = factory.getConfiguration(true);<a name="line.729"></a>
+<FONT color="green">730</FONT>            assertNull("Additional configuration was found", cc<a name="line.730"></a>
+<FONT color="green">731</FONT>                    .getConfiguration(DefaultConfigurationBuilder.ADDITIONAL_NAME));<a name="line.731"></a>
+<FONT color="green">732</FONT>        }<a name="line.732"></a>
+<FONT color="green">733</FONT>    <a name="line.733"></a>
+<FONT color="green">734</FONT>        /**<a name="line.734"></a>
+<FONT color="green">735</FONT>         * Tests whether the list node definition was correctly processed.<a name="line.735"></a>
+<FONT color="green">736</FONT>         */<a name="line.736"></a>
+<FONT color="green">737</FONT>        @Test<a name="line.737"></a>
+<FONT color="green">738</FONT>        public void testCombinedConfigurationListNodes()<a name="line.738"></a>
+<FONT color="green">739</FONT>                throws ConfigurationException<a name="line.739"></a>
+<FONT color="green">740</FONT>        {<a name="line.740"></a>
+<FONT color="green">741</FONT>            factory.setFile(INIT_FILE);<a name="line.741"></a>
+<FONT color="green">742</FONT>            CombinedConfiguration cc = factory.getConfiguration(true);<a name="line.742"></a>
+<FONT color="green">743</FONT>            Set&lt;String&gt; listNodes = cc.getNodeCombiner().getListNodes();<a name="line.743"></a>
+<FONT color="green">744</FONT>            assertEquals("Wrong number of list nodes", 2, listNodes.size());<a name="line.744"></a>
+<FONT color="green">745</FONT>            assertTrue("table node not a list node", listNodes.contains("table"));<a name="line.745"></a>
+<FONT color="green">746</FONT>            assertTrue("list node not a list node", listNodes.contains("list"));<a name="line.746"></a>
+<FONT color="green">747</FONT>    <a name="line.747"></a>
+<FONT color="green">748</FONT>            CombinedConfiguration cca = (CombinedConfiguration) cc<a name="line.748"></a>
+<FONT color="green">749</FONT>                    .getConfiguration(DefaultConfigurationBuilder.ADDITIONAL_NAME);<a name="line.749"></a>
+<FONT color="green">750</FONT>            listNodes = cca.getNodeCombiner().getListNodes();<a name="line.750"></a>
+<FONT color="green">751</FONT>            assertTrue("Found list nodes for additional combiner", listNodes<a name="line.751"></a>
+<FONT color="green">752</FONT>                    .isEmpty());<a name="line.752"></a>
+<FONT color="green">753</FONT>        }<a name="line.753"></a>
+<FONT color="green">754</FONT>    <a name="line.754"></a>
+<FONT color="green">755</FONT>        /**<a name="line.755"></a>
+<FONT color="green">756</FONT>         * Tests whether a configuration builder can itself be declared in a<a name="line.756"></a>
+<FONT color="green">757</FONT>         * configuration definition file.<a name="line.757"></a>
+<FONT color="green">758</FONT>         */<a name="line.758"></a>
+<FONT color="green">759</FONT>        @Test<a name="line.759"></a>
+<FONT color="green">760</FONT>        public void testConfigurationBuilderProvider()<a name="line.760"></a>
+<FONT color="green">761</FONT>                throws ConfigurationException<a name="line.761"></a>
+<FONT color="green">762</FONT>        {<a name="line.762"></a>
+<FONT color="green">763</FONT>            factory.addProperty("override.configuration[@fileName]", TEST_FILE<a name="line.763"></a>
+<FONT color="green">764</FONT>                    .getAbsolutePath());<a name="line.764"></a>
+<FONT color="green">765</FONT>            CombinedConfiguration cc = factory.getConfiguration(false);<a name="line.765"></a>
+<FONT color="green">766</FONT>            assertEquals("Wrong number of configurations", 1, cc<a name="line.766"></a>
+<FONT color="green">767</FONT>                    .getNumberOfConfigurations());<a name="line.767"></a>
+<FONT color="green">768</FONT>            checkProperties(cc);<a name="line.768"></a>
+<FONT color="green">769</FONT>        }<a name="line.769"></a>
+<FONT color="green">770</FONT>    <a name="line.770"></a>
+<FONT color="green">771</FONT>        /**<a name="line.771"></a>
+<FONT color="green">772</FONT>         * Tests whether XML settings can be inherited.<a name="line.772"></a>
+<FONT color="green">773</FONT>         */<a name="line.773"></a>
+<FONT color="green">774</FONT>        @Test<a name="line.774"></a>
+<FONT color="green">775</FONT>        public void testLoadXMLWithSettings() throws Exception<a name="line.775"></a>
+<FONT color="green">776</FONT>        {<a name="line.776"></a>
+<FONT color="green">777</FONT>            File confDir = new File("conf");<a name="line.777"></a>
+<FONT color="green">778</FONT>            File targetDir = new File("target");<a name="line.778"></a>
+<FONT color="green">779</FONT>            File testXMLValidationSource = new File(confDir,<a name="line.779"></a>
+<FONT color="green">780</FONT>                    "testValidateInvalid.xml");<a name="line.780"></a>
+<FONT color="green">781</FONT>            File testSavedXML = new File(targetDir, "testSave.xml");<a name="line.781"></a>
+<FONT color="green">782</FONT>            File testSavedFactory = new File(targetDir, "testSaveFactory.xml");<a name="line.782"></a>
+<FONT color="green">783</FONT>            URL dtdFile = getClass().getResource("/properties.dtd");<a name="line.783"></a>
+<FONT color="green">784</FONT>            final String publicId = "http://commons.apache.org/test.dtd";<a name="line.784"></a>
+<FONT color="green">785</FONT>    <a name="line.785"></a>
+<FONT color="green">786</FONT>            XMLConfiguration config = new XMLConfiguration("testDtd.xml");<a name="line.786"></a>
+<FONT color="green">787</FONT>            config.setPublicID(publicId);<a name="line.787"></a>
+<FONT color="green">788</FONT>            config.save(testSavedXML);<a name="line.788"></a>
+<FONT color="green">789</FONT>            factory.addProperty("xml[@fileName]", testSavedXML.getAbsolutePath());<a name="line.789"></a>
+<FONT color="green">790</FONT>            factory.addProperty("xml(0)[@validating]", "true");<a name="line.790"></a>
+<FONT color="green">791</FONT>            factory.addProperty("xml(-1)[@fileName]", testXMLValidationSource<a name="line.791"></a>
+<FONT color="green">792</FONT>                    .getAbsolutePath());<a name="line.792"></a>
+<FONT color="green">793</FONT>            factory.addProperty("xml(1)[@config-optional]", "true");<a name="line.793"></a>
+<FONT color="green">794</FONT>            factory.addProperty("xml(1)[@validating]", "true");<a name="line.794"></a>
+<FONT color="green">795</FONT>            factory.save(testSavedFactory);<a name="line.795"></a>
+<FONT color="green">796</FONT>    <a name="line.796"></a>
+<FONT color="green">797</FONT>            factory = new DefaultConfigurationBuilder();<a name="line.797"></a>
+<FONT color="green">798</FONT>            factory.setFile(testSavedFactory);<a name="line.798"></a>
+<FONT color="green">799</FONT>            factory.registerEntityId(publicId, dtdFile);<a name="line.799"></a>
+<FONT color="green">800</FONT>            factory.clearErrorListeners();<a name="line.800"></a>
+<FONT color="green">801</FONT>            Configuration c = factory.getConfiguration();<a name="line.801"></a>
+<FONT color="green">802</FONT>            assertEquals("Wrong property value", "value1", c.getString("entry(0)"));<a name="line.802"></a>
+<FONT color="green">803</FONT>            assertFalse("Invalid XML source was loaded", c<a name="line.803"></a>
+<FONT color="green">804</FONT>                    .containsKey("table.name"));<a name="line.804"></a>
+<FONT color="green">805</FONT>    <a name="line.805"></a>
+<FONT color="green">806</FONT>            testSavedXML.delete();<a name="line.806"></a>
+<FONT color="green">807</FONT>            testSavedFactory.delete();<a name="line.807"></a>
+<FONT color="green">808</FONT>        }<a name="line.808"></a>
+<FONT color="green">809</FONT>    <a name="line.809"></a>
+<FONT color="green">810</FONT>        /**<a name="line.810"></a>
+<FONT color="green">811</FONT>         * Tests loading a configuration definition file that defines a custom<a name="line.811"></a>
+<FONT color="green">812</FONT>         * result class.<a name="line.812"></a>
+<FONT color="green">813</FONT>         */<a name="line.813"></a>
+<FONT color="green">814</FONT>        @Test<a name="line.814"></a>
+<FONT color="green">815</FONT>        public void testExtendedClass() throws ConfigurationException<a name="line.815"></a>
+<FONT color="green">816</FONT>        {<a name="line.816"></a>
+<FONT color="green">817</FONT>            factory.setFile(CLASS_FILE);<a name="line.817"></a>
+<FONT color="green">818</FONT>            CombinedConfiguration cc = factory.getConfiguration(true);<a name="line.818"></a>
+<FONT color="green">819</FONT>            String prop = (String)cc.getProperty("test");<a name="line.819"></a>
+<FONT color="green">820</FONT>            assertEquals("Expected 'Extended', actual '" + prop + "'", "Extended", prop);<a name="line.820"></a>
+<FONT color="green">821</FONT>            assertTrue("Wrong result class: " + cc.getClass(),<a name="line.821"></a>
+<FONT color="green">822</FONT>                    cc instanceof TestDefaultConfigurationBuilder.ExtendedCombinedConfiguration);<a name="line.822"></a>
+<FONT color="green">823</FONT>        }<a name="line.823"></a>
+<FONT color="green">824</FONT>    <a name="line.824"></a>
+<FONT color="green">825</FONT>        /**<a name="line.825"></a>
+<FONT color="green">826</FONT>         * Tests loading a configuration definition file that defines new providers.<a name="line.826"></a>
+<FONT color="green">827</FONT>         */<a name="line.827"></a>
+<FONT color="green">828</FONT>        @Test<a name="line.828"></a>
+<FONT color="green">829</FONT>        public void testConfigurationProvider() throws ConfigurationException<a name="line.829"></a>
+<FONT color="green">830</FONT>        {<a name="line.830"></a>
+<FONT color="green">831</FONT>            factory.setFile(PROVIDER_FILE);<a name="line.831"></a>
+<FONT color="green">832</FONT>            factory.getConfiguration(true);<a name="line.832"></a>
+<FONT color="green">833</FONT>            DefaultConfigurationBuilder.ConfigurationProvider provider = factory<a name="line.833"></a>
+<FONT color="green">834</FONT>                    .providerForTag("test");<a name="line.834"></a>
+<FONT color="green">835</FONT>            assertNotNull("Provider 'test' not registered", provider);<a name="line.835"></a>
+<FONT color="green">836</FONT>        }<a name="line.836"></a>
+<FONT color="green">837</FONT>    <a name="line.837"></a>
+<FONT color="green">838</FONT>        /**<a name="line.838"></a>
+<FONT color="green">839</FONT>         * Tests loading a configuration definition file that defines new providers.<a name="line.839"></a>
+<FONT color="green">840</FONT>         */<a name="line.840"></a>
+<FONT color="green">841</FONT>        @Test<a name="line.841"></a>
+<FONT color="green">842</FONT>        public void testExtendedXMLConfigurationProvider() throws ConfigurationException<a name="line.842"></a>
+<FONT color="green">843</FONT>        {<a name="line.843"></a>
+<FONT color="green">844</FONT>            factory.setFile(EXTENDED_PROVIDER_FILE);<a name="line.844"></a>
+<FONT color="green">845</FONT>            CombinedConfiguration cc = factory.getConfiguration(true);<a name="line.845"></a>
+<FONT color="green">846</FONT>            DefaultConfigurationBuilder.ConfigurationProvider provider = factory<a name="line.846"></a>
+<FONT color="green">847</FONT>                    .providerForTag("test");<a name="line.847"></a>
+<FONT color="green">848</FONT>            assertNotNull("Provider 'test' not registered", provider);<a name="line.848"></a>
+<FONT color="green">849</FONT>            Configuration config = cc.getConfiguration("xml");<a name="line.849"></a>
+<FONT color="green">850</FONT>            assertNotNull("Test configuration not present", config);<a name="line.850"></a>
+<FONT color="green">851</FONT>            assertTrue("Configuration is not ExtendedXMLConfiguration, is " +<a name="line.851"></a>
+<FONT color="green">852</FONT>                    config.getClass().getName(),<a name="line.852"></a>
+<FONT color="green">853</FONT>                    config instanceof TestDefaultConfigurationBuilder.ExtendedXMLConfiguration);<a name="line.853"></a>
+<FONT color="green">854</FONT>        }<a name="line.854"></a>
+<FONT color="green">855</FONT>    <a name="line.855"></a>
+<FONT color="green">856</FONT>        @Test<a name="line.856"></a>
+<FONT color="green">857</FONT>        public void testGlobalLookup() throws Exception<a name="line.857"></a>
+<FONT color="green">858</FONT>        {<a name="line.858"></a>
+<FONT color="green">859</FONT>            factory.setFile(GLOBAL_LOOKUP_FILE);<a name="line.859"></a>
+<FONT color="green">860</FONT>            CombinedConfiguration cc = factory.getConfiguration(true);<a name="line.860"></a>
+<FONT color="green">861</FONT>            String value = cc.getInterpolator().lookup("test:test_key");<a name="line.861"></a>
+<FONT color="green">862</FONT>            assertNotNull("The test key was not located", value);<a name="line.862"></a>
+<FONT color="green">863</FONT>            assertEquals("Incorrect value retrieved","test.value",value);<a name="line.863"></a>
+<FONT color="green">864</FONT>        }<a name="line.864"></a>
+<FONT color="green">865</FONT>    <a name="line.865"></a>
+<FONT color="green">866</FONT>        @Test<a name="line.866"></a>
+<FONT color="green">867</FONT>        public void testSystemProperties() throws Exception<a name="line.867"></a>
+<FONT color="green">868</FONT>        {<a name="line.868"></a>
+<FONT color="green">869</FONT>            factory.setFile(SYSTEM_PROPS_FILE);<a name="line.869"></a>
+<FONT color="green">870</FONT>            factory.getConfiguration(true);<a name="line.870"></a>
+<FONT color="green">871</FONT>            String value = System.getProperty("key1");<a name="line.871"></a>
+<FONT color="green">872</FONT>            assertNotNull("The test key was not located", value);<a name="line.872"></a>
+<FONT color="green">873</FONT>            assertEquals("Incorrect value retrieved","value1",value);<a name="line.873"></a>
+<FONT color="green">874</FONT>        }<a name="line.874"></a>
+<FONT color="green">875</FONT>    <a name="line.875"></a>
+<FONT color="green">876</FONT>        @Test<a name="line.876"></a>
+<FONT color="green">877</FONT>        public void testValidation() throws Exception<a name="line.877"></a>
+<FONT color="green">878</FONT>        {<a name="line.878"></a>
+<FONT color="green">879</FONT>            factory.setFile(VALIDATION_FILE);<a name="line.879"></a>
+<FONT color="green">880</FONT>            CombinedConfiguration cc = factory.getConfiguration(true);<a name="line.880"></a>
+<FONT color="green">881</FONT>            String value = cc.getString("key1");<a name="line.881"></a>
+<FONT color="green">882</FONT>            assertNotNull("The test key was not located", value);<a name="line.882"></a>
+<FONT color="green">883</FONT>            assertEquals("Incorrect value retrieved","value1",value);<a name="line.883"></a>
+<FONT color="green">884</FONT>        }<a name="line.884"></a>
+<FONT color="green">885</FONT>    <a name="line.885"></a>
+<FONT color="green">886</FONT>        @Test<a name="line.886"></a>
+<FONT color="green">887</FONT>        public void testValidation2() throws Exception<a name="line.887"></a>
+<FONT color="green">888</FONT>        {<a name="line.888"></a>
+<FONT color="green">889</FONT>            factory.setFile(VALIDATION2_FILE);<a name="line.889"></a>
+<FONT color="green">890</FONT>            CombinedConfiguration cc = factory.getConfiguration(true);<a name="line.890"></a>
+<FONT color="green">891</FONT>            String value = cc.getString("key1");<a name="line.891"></a>
+<FONT color="green">892</FONT>            assertNotNull("The test key was not located", value);<a name="line.892"></a>
+<FONT color="green">893</FONT>            assertEquals("Incorrect value retrieved","value1",value);<a name="line.893"></a>
+<FONT color="green">894</FONT>        }<a name="line.894"></a>
+<FONT color="green">895</FONT>    <a name="line.895"></a>
+<FONT color="green">896</FONT>        @Test<a name="line.896"></a>
+<FONT color="green">897</FONT>        public void testMultiTenentConfiguration() throws Exception<a name="line.897"></a>
+<FONT color="green">898</FONT>        {<a name="line.898"></a>
+<FONT color="green">899</FONT>            factory.setFile(MULTI_TENENT_FILE);<a name="line.899"></a>
+<FONT color="green">900</FONT>            System.getProperties().remove("Id");<a name="line.900"></a>
+<FONT color="green">901</FONT>    <a name="line.901"></a>
+<FONT color="green">902</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.902"></a>
+<FONT color="green">903</FONT>            assertTrue("Incorrect configuration", config instanceof DynamicCombinedConfiguration);<a name="line.903"></a>
+<FONT color="green">904</FONT>    <a name="line.904"></a>
+<FONT color="green">905</FONT>            verify(null, config, 50);<a name="line.905"></a>
+<FONT color="green">906</FONT>            verify("1001", config, 15);<a name="line.906"></a>
+<FONT color="green">907</FONT>            verify("1002", config, 25);<a name="line.907"></a>
+<FONT color="green">908</FONT>            verify("1003", config, 35);<a name="line.908"></a>
+<FONT color="green">909</FONT>            verify("1004", config, 50);<a name="line.909"></a>
+<FONT color="green">910</FONT>            verify("1005", config, 50);<a name="line.910"></a>
+<FONT color="green">911</FONT>        }<a name="line.911"></a>
+<FONT color="green">912</FONT>    <a name="line.912"></a>
+<FONT color="green">913</FONT>        @Test<a name="line.913"></a>
+<FONT color="green">914</FONT>        public void testMultiTenentConfiguration2() throws Exception<a name="line.914"></a>
+<FONT color="green">915</FONT>        {<a name="line.915"></a>
+<FONT color="green">916</FONT>            factory.setFile(MULTI_TENENT_FILE);<a name="line.916"></a>
+<FONT color="green">917</FONT>            System.setProperty("Id", "1004");<a name="line.917"></a>
+<FONT color="green">918</FONT>    <a name="line.918"></a>
+<FONT color="green">919</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.919"></a>
+<FONT color="green">920</FONT>            assertTrue("Incorrect configuration", config instanceof DynamicCombinedConfiguration);<a name="line.920"></a>
+<FONT color="green">921</FONT>    <a name="line.921"></a>
+<FONT color="green">922</FONT>            verify("1001", config, 15);<a name="line.922"></a>
+<FONT color="green">923</FONT>            verify("1002", config, 25);<a name="line.923"></a>
+<FONT color="green">924</FONT>            verify("1003", config, 35);<a name="line.924"></a>
+<FONT color="green">925</FONT>            verify("1004", config, 50);<a name="line.925"></a>
+<FONT color="green">926</FONT>            verify("1005", config, 50);<a name="line.926"></a>
+<FONT color="green">927</FONT>        }<a name="line.927"></a>
+<FONT color="green">928</FONT>    <a name="line.928"></a>
+<FONT color="green">929</FONT>        @Test<a name="line.929"></a>
+<FONT color="green">930</FONT>        public void testMultiTenentConfiguration3() throws Exception<a name="line.930"></a>
+<FONT color="green">931</FONT>        {<a name="line.931"></a>
+<FONT color="green">932</FONT>            factory.setFile(MULTI_TENENT_FILE);<a name="line.932"></a>
+<FONT color="green">933</FONT>            System.setProperty("Id", "1005");<a name="line.933"></a>
+<FONT color="green">934</FONT>    <a name="line.934"></a>
+<FONT color="green">935</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.935"></a>
+<FONT color="green">936</FONT>            assertTrue("Incorrect configuration", config instanceof DynamicCombinedConfiguration);<a name="line.936"></a>
+<FONT color="green">937</FONT>    <a name="line.937"></a>
+<FONT color="green">938</FONT>            verify("1001", config, 15);<a name="line.938"></a>
+<FONT color="green">939</FONT>            verify("1002", config, 25);<a name="line.939"></a>
+<FONT color="green">940</FONT>            verify("1003", config, 35);<a name="line.940"></a>
+<FONT color="green">941</FONT>            verify("1004", config, 50);<a name="line.941"></a>
+<FONT color="green">942</FONT>            verify("1005", config, 50);<a name="line.942"></a>
+<FONT color="green">943</FONT>        }<a name="line.943"></a>
+<FONT color="green">944</FONT>    <a name="line.944"></a>
+<FONT color="green">945</FONT>        @Test<a name="line.945"></a>
+<FONT color="green">946</FONT>        public void testSetFileSystem() throws Exception<a name="line.946"></a>
+<FONT color="green">947</FONT>        {<a name="line.947"></a>
+<FONT color="green">948</FONT>            factory.setFile(PROVIDER_FILE);<a name="line.948"></a>
+<FONT color="green">949</FONT>            FileSystem fs = new VFSFileSystem();<a name="line.949"></a>
+<FONT color="green">950</FONT>            factory.setFileSystem(fs);<a name="line.950"></a>
+<FONT color="green">951</FONT>            FileSystem.resetDefaultFileSystem();<a name="line.951"></a>
+<FONT color="green">952</FONT>            System.getProperties().remove("Id");<a name="line.952"></a>
+<FONT color="green">953</FONT>    <a name="line.953"></a>
+<FONT color="green">954</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.954"></a>
+<FONT color="green">955</FONT>            List&lt;AbstractConfiguration&gt; list = config.getConfigurations();<a name="line.955"></a>
+<FONT color="green">956</FONT>            assertTrue("Incorrect number of configurations - " + list.size(), list.size() == 4);<a name="line.956"></a>
+<FONT color="green">957</FONT>            Iterator&lt;AbstractConfiguration&gt; iter = list.iterator();<a name="line.957"></a>
+<FONT color="green">958</FONT>            while (iter.hasNext())<a name="line.958"></a>
+<FONT color="green">959</FONT>            {<a name="line.959"></a>
+<FONT color="green">960</FONT>                Configuration conf = iter.next();<a name="line.960"></a>
+<FONT color="green">961</FONT>                if (conf instanceof FileSystemBased)<a name="line.961"></a>
+<FONT color="green">962</FONT>                {<a name="line.962"></a>
+<FONT color="green">963</FONT>                    assertTrue("Incorrect file system for Configuration " + conf,<a name="line.963"></a>
+<FONT color="green">964</FONT>                            ((FileSystemBased)conf).getFileSystem() == fs);<a name="line.964"></a>
+<FONT color="green">965</FONT>                }<a name="line.965"></a>
+<FONT color="green">966</FONT>                else if (conf instanceof CombinedConfiguration)<a name="line.966"></a>
+<FONT color="green">967</FONT>                {<a name="line.967"></a>
+<FONT color="green">968</FONT>                    Iterator&lt;AbstractConfiguration&gt; it = ((CombinedConfiguration)conf).getConfigurations().iterator();<a name="line.968"></a>
+<FONT color="green">969</FONT>                    while (it.hasNext())<a name="line.969"></a>
+<FONT color="green">970</FONT>                    {<a name="line.970"></a>
+<FONT color="green">971</FONT>                        conf = it.next();<a name="line.971"></a>
+<FONT color="green">972</FONT>                        if (conf instanceof FileSystemBased)<a name="line.972"></a>
+<FONT color="green">973</FONT>                        {<a name="line.973"></a>
+<FONT color="green">974</FONT>                            assertTrue("Incorrect file system for Configuration " + conf,<a name="line.974"></a>
+<FONT color="green">975</FONT>                                ((FileSystemBased)conf).getFileSystem() == fs);<a name="line.975"></a>
+<FONT color="green">976</FONT>                        }<a name="line.976"></a>
+<FONT color="green">977</FONT>                    }<a name="line.977"></a>
+<FONT color="green">978</FONT>                }<a name="line.978"></a>
+<FONT color="green">979</FONT>            }<a name="line.979"></a>
+<FONT color="green">980</FONT>        }<a name="line.980"></a>
+<FONT color="green">981</FONT>    <a name="line.981"></a>
+<FONT color="green">982</FONT>        @Test<a name="line.982"></a>
+<FONT color="green">983</FONT>        public void testConfiguredFileSystem() throws Exception<a name="line.983"></a>
+<FONT color="green">984</FONT>        {<a name="line.984"></a>
+<FONT color="green">985</FONT>            factory.setFile(FILESYSTEM_FILE);<a name="line.985"></a>
+<FONT color="green">986</FONT>            FileSystem.resetDefaultFileSystem();<a name="line.986"></a>
+<FONT color="green">987</FONT>            System.getProperties().remove("Id");<a name="line.987"></a>
+<FONT color="green">988</FONT>    <a name="line.988"></a>
+<FONT color="green">989</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.989"></a>
+<FONT color="green">990</FONT>            FileSystem fs = factory.getFileSystem();<a name="line.990"></a>
+<FONT color="green">991</FONT>            assertNotNull("No File System",fs);<a name="line.991"></a>
+<FONT color="green">992</FONT>            assertTrue("Incorrect File System", fs instanceof VFSFileSystem);<a name="line.992"></a>
+<FONT color="green">993</FONT>            List&lt;AbstractConfiguration&gt; list = config.getConfigurations();<a name="line.993"></a>
+<FONT color="green">994</FONT>            assertTrue("Incorrect number of configurations - " + list.size(), list.size() == 4);<a name="line.994"></a>
+<FONT color="green">995</FONT>            Iterator&lt;AbstractConfiguration&gt; iter = list.iterator();<a name="line.995"></a>
+<FONT color="green">996</FONT>            while (iter.hasNext())<a name="line.996"></a>
+<FONT color="green">997</FONT>            {<a name="line.997"></a>
+<FONT color="green">998</FONT>                Configuration conf = iter.next();<a name="line.998"></a>
+<FONT color="green">999</FONT>                if (conf instanceof FileSystemBased)<a name="line.999"></a>
+<FONT color="green">1000</FONT>                {<a name="line.1000"></a>
+<FONT color="green">1001</FONT>                    assertTrue("Incorrect file system for Configuration " + conf,<a name="line.1001"></a>
+<FONT color="green">1002</FONT>                            ((FileSystemBased)conf).getFileSystem() == fs);<a name="line.1002"></a>
+<FONT color="green">1003</FONT>                }<a name="line.1003"></a>
+<FONT color="green">1004</FONT>                else if (conf instanceof CombinedConfiguration)<a name="line.1004"></a>
+<FONT color="green">1005</FONT>                {<a name="line.1005"></a>
+<FONT color="green">1006</FONT>                    Iterator&lt;AbstractConfiguration&gt; it = ((CombinedConfiguration)conf).getConfigurations().iterator();<a name="line.1006"></a>
+<FONT color="green">1007</FONT>                    while (it.hasNext())<a name="line.1007"></a>
+<FONT color="green">1008</FONT>                    {<a name="line.1008"></a>
+<FONT color="green">1009</FONT>                        conf = it.next();<a name="line.1009"></a>
+<FONT color="green">1010</FONT>                        if (conf instanceof FileSystemBased)<a name="line.1010"></a>
+<FONT color="green">1011</FONT>                        {<a name="line.1011"></a>
+<FONT color="green">1012</FONT>                            assertTrue("Incorrect file system for Configuration " + conf,<a name="line.1012"></a>
+<FONT color="green">1013</FONT>                                ((FileSystemBased)conf).getFileSystem() == fs);<a name="line.1013"></a>
+<FONT color="green">1014</FONT>                        }<a name="line.1014"></a>
+<FONT color="green">1015</FONT>                    }<a name="line.1015"></a>
+<FONT color="green">1016</FONT>                }<a name="line.1016"></a>
+<FONT color="green">1017</FONT>            }<a name="line.1017"></a>
+<FONT color="green">1018</FONT>        }<a name="line.1018"></a>
+<FONT color="green">1019</FONT>    <a name="line.1019"></a>
+<FONT color="green">1020</FONT>        @Test<a name="line.1020"></a>
+<FONT color="green">1021</FONT>        public void testFileReload1() throws Exception<a name="line.1021"></a>
+<FONT color="green">1022</FONT>        {<a name="line.1022"></a>
+<FONT color="green">1023</FONT>            // create a new configuration<a name="line.1023"></a>
+<FONT color="green">1024</FONT>            File input = new File("target/test-classes/testMultiConfiguration_1001.xml");<a name="line.1024"></a>
+<FONT color="green">1025</FONT>            File output = new File("target/test-classes/testwrite/testMultiConfiguration_1001.xml");<a name="line.1025"></a>
+<FONT color="green">1026</FONT>            output.delete();<a name="line.1026"></a>
+<FONT color="green">1027</FONT>            output.getParentFile().mkdir();<a name="line.1027"></a>
+<FONT color="green">1028</FONT>            copyFile(input, output);<a name="line.1028"></a>
+<FONT color="green">1029</FONT>            // Sleep to make sure the file timestamp is not in the same second as "now".<a name="line.1029"></a>
+<FONT color="green">1030</FONT>            Thread.sleep(1100);<a name="line.1030"></a>
+<FONT color="green">1031</FONT>    <a name="line.1031"></a>
+<FONT color="green">1032</FONT>            factory.setFile(FILERELOAD_FILE);<a name="line.1032"></a>
+<FONT color="green">1033</FONT>            FileSystem.resetDefaultFileSystem();<a name="line.1033"></a>
+<FONT color="green">1034</FONT>            System.getProperties().remove("Id");<a name="line.1034"></a>
+<FONT color="green">1035</FONT>    <a name="line.1035"></a>
+<FONT color="green">1036</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.1036"></a>
+<FONT color="green">1037</FONT>            assertNotNull(config);<a name="line.1037"></a>
+<FONT color="green">1038</FONT>            verify("1001", config, 15);<a name="line.1038"></a>
+<FONT color="green">1039</FONT>            Thread.sleep(1100);<a name="line.1039"></a>
+<FONT color="green">1040</FONT>            XMLConfiguration x = new XMLConfiguration(output);<a name="line.1040"></a>
+<FONT color="green">1041</FONT>            x.setProperty("rowsPerPage", "50");<a name="line.1041"></a>
+<FONT color="green">1042</FONT>            x.save();<a name="line.1042"></a>
+<FONT color="green">1043</FONT>            verify("1001", config, 50);<a name="line.1043"></a>
+<FONT color="green">1044</FONT>            output.delete();<a name="line.1044"></a>
+<FONT color="green">1045</FONT>        }<a name="line.1045"></a>
+<FONT color="green">1046</FONT>    <a name="line.1046"></a>
+<FONT color="green">1047</FONT>        @Test<a name="line.1047"></a>
+<FONT color="green">1048</FONT>        public void testFileReload2() throws Exception<a name="line.1048"></a>
+<FONT color="green">1049</FONT>        {<a name="line.1049"></a>
+<FONT color="green">1050</FONT>            // create a new configuration<a name="line.1050"></a>
+<FONT color="green">1051</FONT>            File input = new File("target/test-classes/testMultiConfiguration_1002.xml");<a name="line.1051"></a>
+<FONT color="green">1052</FONT>            File output = new File("target/test-classes/testwrite/testMultiConfiguration_1002.xml");<a name="line.1052"></a>
+<FONT color="green">1053</FONT>            output.delete();<a name="line.1053"></a>
+<FONT color="green">1054</FONT>    <a name="line.1054"></a>
+<FONT color="green">1055</FONT>            factory.setFile(FILERELOAD_FILE);<a name="line.1055"></a>
+<FONT color="green">1056</FONT>            FileSystem.resetDefaultFileSystem();<a name="line.1056"></a>
+<FONT color="green">1057</FONT>            System.getProperties().remove("Id");<a name="line.1057"></a>
+<FONT color="green">1058</FONT>    <a name="line.1058"></a>
+<FONT color="green">1059</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.1059"></a>
+<FONT color="green">1060</FONT>            assertNotNull(config);<a name="line.1060"></a>
+<FONT color="green">1061</FONT>    <a name="line.1061"></a>
+<FONT color="green">1062</FONT>            verify("1002", config, 50);<a name="line.1062"></a>
+<FONT color="green">1063</FONT>            // Sleep to make sure the file timestamp is not in the same second as "now".<a name="line.1063"></a>
+<FONT color="green">1064</FONT>            Thread.sleep(1100);<a name="line.1064"></a>
+<FONT color="green">1065</FONT>            output.getParentFile().mkdir();<a name="line.1065"></a>
+<FONT color="green">1066</FONT>            copyFile(input, output);<a name="line.1066"></a>
+<FONT color="green">1067</FONT>            verify("1002", config, 25);<a name="line.1067"></a>
+<FONT color="green">1068</FONT>            output.delete();<a name="line.1068"></a>
+<FONT color="green">1069</FONT>        }<a name="line.1069"></a>
+<FONT color="green">1070</FONT>    <a name="line.1070"></a>
+<FONT color="green">1071</FONT>        @Test<a name="line.1071"></a>
+<FONT color="green">1072</FONT>        public void testFileReload3() throws Exception<a name="line.1072"></a>
+<FONT color="green">1073</FONT>        {<a name="line.1073"></a>
+<FONT color="green">1074</FONT>            // create a new configuration<a name="line.1074"></a>
+<FONT color="green">1075</FONT>            File input = new File("target/test-classes/testMultiConfiguration_1001.xml");<a name="line.1075"></a>
+<FONT color="green">1076</FONT>            File output = new File("target/test-classes/testwrite/testMultiConfiguration_1001.xml");<a name="line.1076"></a>
+<FONT color="green">1077</FONT>            output.delete();<a name="line.1077"></a>
+<FONT color="green">1078</FONT>            output.getParentFile().mkdir();<a name="line.1078"></a>
+<FONT color="green">1079</FONT>    <a name="line.1079"></a>
+<FONT color="green">1080</FONT>            factory.setFile(FILERELOAD_FILE);<a name="line.1080"></a>
+<FONT color="green">1081</FONT>            FileSystem.resetDefaultFileSystem();<a name="line.1081"></a>
+<FONT color="green">1082</FONT>            System.getProperties().remove("Id");<a name="line.1082"></a>
+<FONT color="green">1083</FONT>    <a name="line.1083"></a>
+<FONT color="green">1084</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.1084"></a>
+<FONT color="green">1085</FONT>            assertNotNull(config);<a name="line.1085"></a>
+<FONT color="green">1086</FONT>            verify("1001", config, 50);<a name="line.1086"></a>
+<FONT color="green">1087</FONT>            copyFile(input, output);<a name="line.1087"></a>
+<FONT color="green">1088</FONT>            // Sleep to make sure the file timestamp is not in the same second as "now".<a name="line.1088"></a>
+<FONT color="green">1089</FONT>            Thread.sleep(1100);<a name="line.1089"></a>
+<FONT color="green">1090</FONT>            verify("1001", config, 15);<a name="line.1090"></a>
+<FONT color="green">1091</FONT>            XMLConfiguration x = new XMLConfiguration(output);<a name="line.1091"></a>
+<FONT color="green">1092</FONT>            x.setProperty("rowsPerPage", "25");<a name="line.1092"></a>
+<FONT color="green">1093</FONT>            x.save();<a name="line.1093"></a>
+<FONT color="green">1094</FONT>             // Sleep to make sure the file timestamp is not in the same second as "now".<a name="line.1094"></a>
+<FONT color="green">1095</FONT>            Thread.sleep(1100);<a name="line.1095"></a>
+<FONT color="green">1096</FONT>            verify("1001", config, 25);<a name="line.1096"></a>
+<FONT color="green">1097</FONT>            output.delete();<a name="line.1097"></a>
+<FONT color="green">1098</FONT>        }<a name="line.1098"></a>
+<FONT color="green">1099</FONT>    <a name="line.1099"></a>
+<FONT color="green">1100</FONT>        @Test<a name="line.1100"></a>
+<FONT color="green">1101</FONT>        public void testReloadDefault() throws Exception<a name="line.1101"></a>
+<FONT color="green">1102</FONT>        {<a name="line.1102"></a>
+<FONT color="green">1103</FONT>            // create a new configuration<a name="line.1103"></a>
+<FONT color="green">1104</FONT>            String defaultName = "target/test-classes/testMultiConfiguration_default.xml";<a name="line.1104"></a>
+<FONT color="green">1105</FONT>            File input = new File(defaultName);<a name="line.1105"></a>
+<FONT color="green">1106</FONT>    <a name="line.1106"></a>
+<FONT color="green">1107</FONT>            System.getProperties().remove("Id");<a name="line.1107"></a>
+<FONT color="green">1108</FONT>            factory.setFile(MULTI_RELOAD_FILE1);<a name="line.1108"></a>
+<FONT color="green">1109</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.1109"></a>
+<FONT color="green">1110</FONT>            assertNotNull(config);<a name="line.1110"></a>
+<FONT color="green">1111</FONT>            verify("3001", config, 15);<a name="line.1111"></a>
+<FONT color="green">1112</FONT>            verify("3002", config, 25);<a name="line.1112"></a>
+<FONT color="green">1113</FONT>            System.setProperty("Id", "3002");<a name="line.1113"></a>
+<FONT color="green">1114</FONT>            config.addProperty("/ TestProp", "Test");<a name="line.1114"></a>
+<FONT color="green">1115</FONT>            assertTrue("Property not added", "Test".equals(config.getString("TestProp")));<a name="line.1115"></a>
+<FONT color="green">1116</FONT>            System.getProperties().remove("Id");<a name="line.1116"></a>
+<FONT color="green">1117</FONT>            //Sleep so refreshDelay elapses<a name="line.1117"></a>
+<FONT color="green">1118</FONT>            Thread.sleep(600);<a name="line.1118"></a>
+<FONT color="green">1119</FONT>            long time = System.currentTimeMillis();<a name="line.1119"></a>
+<FONT color="green">1120</FONT>            long original = input.lastModified();<a name="line.1120"></a>
+<FONT color="green">1121</FONT>            input.setLastModified(time);<a name="line.1121"></a>
+<FONT color="green">1122</FONT>            File defaultFile = new File(defaultName);<a name="line.1122"></a>
+<FONT color="green">1123</FONT>            long newTime = defaultFile.lastModified();<a name="line.1123"></a>
+<FONT color="green">1124</FONT>            assertTrue("time mismatch", original != newTime);<a name="line.1124"></a>
+<FONT color="green">1125</FONT>            Thread.sleep(600);<a name="line.1125"></a>
+<FONT color="green">1126</FONT>            verify("3001", config, 15);<a name="line.1126"></a>
+<FONT color="green">1127</FONT>            verify("3002", config, 25);<a name="line.1127"></a>
+<FONT color="green">1128</FONT>            System.setProperty("Id", "3002");<a name="line.1128"></a>
+<FONT color="green">1129</FONT>            String test = config.getString("TestProp");<a name="line.1129"></a>
+<FONT color="green">1130</FONT>            assertNull("Property was not cleared by reload", test);<a name="line.1130"></a>
+<FONT color="green">1131</FONT>        }<a name="line.1131"></a>
+<FONT color="green">1132</FONT>    <a name="line.1132"></a>
+<FONT color="green">1133</FONT>        @Test<a name="line.1133"></a>
+<FONT color="green">1134</FONT>        public void testFileReloadSchemaValidationError() throws Exception<a name="line.1134"></a>
+<FONT color="green">1135</FONT>        {<a name="line.1135"></a>
+<FONT color="green">1136</FONT>            System.getProperties().remove("Id");<a name="line.1136"></a>
+<FONT color="green">1137</FONT>            factory.setFile(MULTI_RELOAD_FILE2);<a name="line.1137"></a>
+<FONT color="green">1138</FONT>            CombinedConfiguration config = factory.getConfiguration(true);<a name="line.1138"></a>
+<FONT color="green">1139</FONT>    <a name="line.1139"></a>
+<FONT color="green">1140</FONT>            // create a new configuration<a name="line.1140"></a>
+<FONT color="green">1141</FONT>            File input = new File("target/test-classes/testMultiConfiguration_3001.xml");<a name="line.1141"></a>
+<FONT color="green">1142</FONT>            File output = new File("target/test-classes/testwrite/testMultiConfiguration_3001.xml");<a name="line.1142"></a>
+<FONT color="green">1143</FONT>            output.delete();<a name="line.1143"></a>
+<FONT color="green">1144</FONT>            output.getParentFile().mkdir();<a name="line.1144"></a>
+<FONT color="green">1145</FONT>            copyFile(input, output);<a name="line.1145"></a>
+<FONT color="green">1146</FONT>    <a name="line.1146"></a>
+<FONT color="green">1147</FONT>            assertNotNull(config);<a name="line.1147"></a>
+<FONT color="green">1148</FONT>            verify("3001", config, 15);<a name="line.1148"></a>
+<FONT color="green">1149</FONT>            Thread.sleep(1100);<a name="line.1149"></a>
+<FONT color="green">1150</FONT>            XMLConfiguration x = new XMLConfiguration();<a name="line.1150"></a>
+<FONT color="green">1151</FONT>            x.setFile(output);<a name="line.1151"></a>
+<FONT color="green">1152</FONT>            x.setAttributeSplittingDisabled(true);<a name="line.1152"></a>
+<FONT color="green">1153</FONT>            x.setDelimiterParsingDisabled(true);<a name="line.1153"></a>
+<FONT color="green">1154</FONT>            x.load();<a name="line.1154"></a>
+<FONT color="green">1155</FONT>            x.setProperty("rowsPerPage", "test");<a name="line.1155"></a>
+<FONT color="green">1156</FONT>            //Insure orginal timestamp and new timestamp aren't the same second.<a name="line.1156"></a>
+<FONT color="green">1157</FONT>            Thread.sleep(1100);<a name="line.1157"></a>
+<FONT color="green">1158</FONT>            x.save();<a name="line.1158"></a>
+<FONT color="green">1159</FONT>            System.setProperty("Id", "3001");<a name="line.1159"></a>
+<FONT color="green">1160</FONT>            try<a name="line.1160"></a>
+<FONT color="green">1161</FONT>            {<a name="line.1161"></a>
+<FONT color="green">1162</FONT>                config.getInt("rowsPerPage");<a name="line.1162"></a>
+<FONT color="green">1163</FONT>                fail("No exception was thrown");<a name="line.1163"></a>
+<FONT color="green">1164</FONT>            }<a name="line.1164"></a>
+<FONT color="green">1165</FONT>            catch (Exception ex)<a name="line.1165"></a>
+<FONT color="green">1166</FONT>            {<a name="line.1166"></a>
+<FONT color="green">1167</FONT>    <a name="line.1167"></a>
+<FONT color="green">1168</FONT>            }<a name="line.1168"></a>
+<FONT color="green">1169</FONT>    <a name="line.1169"></a>
+<FONT color="green">1170</FONT>            output.delete();<a name="line.1170"></a>
+<FONT color="green">1171</FONT>        }<a name="line.1171"></a>
+<FONT color="green">1172</FONT>    <a name="line.1172"></a>
+<FONT color="green">1173</FONT>        private void copyFile(File input, File output) throws IOException<a name="line.1173"></a>
+<FONT color="green">1174</FONT>        {<a name="line.1174"></a>
+<FONT color="green">1175</FONT>            Reader reader = new FileReader(input);<a name="line.1175"></a>
+<FONT color="green">1176</FONT>            Writer writer = new FileWriter(output);<a name="line.1176"></a>
+<FONT color="green">1177</FONT>            char[] buffer = new char[4096];<a name="line.1177"></a>
+<FONT color="green">1178</FONT>            int n = 0;<a name="line.1178"></a>
+<FONT color="green">1179</FONT>            while (-1 != (n = reader.read(buffer)))<a name="line.1179"></a>
+<FONT color="green">1180</FONT>            {<a name="line.1180"></a>
+<FONT color="green">1181</FONT>                writer.write(buffer, 0, n);<a name="line.1181"></a>
+<FONT color="green">1182</FONT>            }<a name="line.1182"></a>
+<FONT color="green">1183</FONT>            reader.close();<a name="line.1183"></a>
+<FONT color="green">1184</FONT>            writer.close();<a name="line.1184"></a>
+<FONT color="green">1185</FONT>        }<a name="line.1185"></a>
+<FONT color="green">1186</FONT>    <a name="line.1186"></a>
+<FONT color="green">1187</FONT>        private void verify(String key, CombinedConfiguration config, int rows)<a name="line.1187"></a>
+<FONT color="green">1188</FONT>        {<a name="line.1188"></a>
+<FONT color="green">1189</FONT>            if (key == null)<a name="line.1189"></a>
+<FONT color="green">1190</FONT>            {<a name="line.1190"></a>
+<FONT color="green">1191</FONT>                System.getProperties().remove("Id");<a name="line.1191"></a>
+<FONT color="green">1192</FONT>            }<a name="line.1192"></a>
+<FONT color="green">1193</FONT>            else<a name="line.1193"></a>
+<FONT color="green">1194</FONT>            {<a name="line.1194"></a>
+<FONT color="green">1195</FONT>                System.setProperty("Id", key);<a name="line.1195"></a>
+<FONT color="green">1196</FONT>            }<a name="line.1196"></a>
+<FONT color="green">1197</FONT>            int actual = config.getInt("rowsPerPage");<a name="line.1197"></a>
+<FONT color="green">1198</FONT>            assertTrue("expected: " + rows + " actual: " + actual, actual == rows);<a name="line.1198"></a>
+<FONT color="green">1199</FONT>        }<a name="line.1199"></a>
+<FONT color="green">1200</FONT>    }<a name="line.1200"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</PRE>
+</BODY>
+</HTML>

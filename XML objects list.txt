@@ -1,0 +1,19 @@
+Madaap.java
+Gate_Home - C:\\GATE - done
+Time_Interval for extractor launch - 1000*60*60*24 - done
+
+Extractor.java
+Database connection string - //localhost/madaap - done
+URL_marker_list - complete list of markers - done
+
+Twitter.java
+Search parameters
+q - #gis - done
+other advanced search parameters - done
+
+Checker module??
+Status column in database for each URL
+0 - default - freshly extracted - displayed in web interface
+1 - Reviewer - Yes - Good URL - Stored in database, used by checker
+2 - Reviewer - No - Bad URL - Stored in database - Don't use them
+3 - ValidURLChecker - Bad(cannot access) - Used by checker, if they are working, change to 0

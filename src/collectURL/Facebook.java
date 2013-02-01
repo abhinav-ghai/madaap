@@ -28,7 +28,6 @@ public class Facebook extends TimerTask implements Runnable{
 	}
 	private void collect() throws Exception{
 		System.out.println("fb collector launched");
-		queue.put(new URL("http://pubs.usgs.gov/ds/2006/240/"));
 		HttpClient twitterClient = new DefaultHttpClient();
 		List<NameValuePair> qparams = new ArrayList<NameValuePair>();
 		qparams.add(new BasicNameValuePair("q", "#Microsoft"));

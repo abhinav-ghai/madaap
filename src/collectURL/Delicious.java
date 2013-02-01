@@ -28,7 +28,6 @@ public class Delicious extends TimerTask implements Runnable{
 	}
 	private void collect() throws Exception{
 		System.out.println("delicious collector launched");
-		queue.put(new URL("http://geonames.usgs.gov/domestic/download_data.htm"));
 		HttpClient twitterClient = new DefaultHttpClient();
 		List<NameValuePair> qparams = new ArrayList<NameValuePair>();
 		qparams.add(new BasicNameValuePair("q", "#Microsoft"));

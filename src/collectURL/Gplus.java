@@ -28,7 +28,6 @@ public class Gplus extends TimerTask implements Runnable{
 	}
 	private void collect() throws Exception{
 		System.out.println("gplus collector launched");
-		queue.put(new URL("http://ngmdb.usgs.gov/ngmdb/ngmdb_home.html"));
 		HttpClient twitterClient = new DefaultHttpClient();
 		List<NameValuePair> qparams = new ArrayList<NameValuePair>();
 		qparams.add(new BasicNameValuePair("q", "#Microsoft"));
