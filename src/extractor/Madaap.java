@@ -35,6 +35,13 @@ public class Madaap {
 	 * @throws Exception
 	 * 
 	 */
+	static final int ONE_MILLSEC = 1;
+	static final int ONE_SEC = 1000*ONE_MILLSEC;
+	static final int ONE_MIN = 60*ONE_SEC;
+	static final int ONE_HOUR = 60*ONE_MIN;
+	static final int ONE_DAY = 24*ONE_HOUR;
+	
+	
 	public static void main(String[] args) throws Exception{
 		
 		/*Set to your Gate installation home*/
@@ -47,18 +54,38 @@ public class Madaap {
 		
 		/*Set the path to \Plugins\Tools directory*/
 		Gate.getCreoleRegister().registerDirectories(new File(config.getString("gate.home") + "\\plugins\\Tools").toURI().toURL()); 
+		
+		/*Declare queue to receive URL from various collectors*/
 		BlockingQueue<URL> queue = new LinkedBlockingQueue<URL>();
-		TimerTask manualFeederTask = new ManualFeeder(queue);
-		TimerTask twitterTask = new Twitter(queue);
+		
+		/*Start extractor*/
 		Extractor e = new Extractor(queue);
+		
+		/*Timer to schedule collector tasks at regular intervals*/
 		Timer timer = new Timer();
-		long twitterTime = Long.parseLong(config.getString("timer.twitter"))*1000*60;//Unit of twitterTime: minutes
-		//timer.scheduleAtFixedRate(twitterTask, 0, twitterTime);
-		long manualFeederTime = Long.parseLong(config.getString("timer.ManualFeederTimer"))*1000*60*60;//Unit of ManualFeederTime: hour
+		
+		/*Collect URL from /input/url.txt*/
+		TimerTask manualFeederTask = new ManualFeeder(queue);
+		long manualFeederTime = Long.parseLong(config.getString("timer.ManualFeederInterval"))*ONE_HOUR;//Unit of ManualFeederTime: hour
 		timer.scheduleAtFixedRate(manualFeederTask, 0, manualFeederTime);
-		//timer.scheduleAtFixedRate(twitterTask, 0, twitterTime);
+		
+		/*Collect URL from twitter feed*/
+		
+		TimerTask twitterTask = new Twitter(queue);
+		long twitterTime = Long.parseLong(config.getString("timer.TwitterInterval"))*ONE_MIN;//Unit of twitterTime: minutes
+		timer.scheduleAtFixedRate(twitterTask, 0, twitterTime);
+		
+		
+		/*Check all URL if they are active or not*/
+		TimerTask checkerTask = new Checker();
+		long checkerTime = Long.parseLong(config.getString("timer.CheckerInterval"))*ONE_HOUR;//Unit of ManualFeederTime: hour
+		timer.scheduleAtFixedRate(checkerTask, 0, checkerTime);
 	}
 	
+	/**
+	 * Get a connection to MySQL database named in madaap.xml file
+	 * @return
+	 */
 	static Connection getMySQLconnection() {
 		Connection mysqlconn = null;
 		try{
@@ -77,7 +104,7 @@ public class Madaap {
 		} catch (ConfigurationException e) {
 			e.printStackTrace();
 		}
-		System.out.println("connection to mysql made");
+		System.out.println("Connection made to MySQL");
 		return mysqlconn;
 	}
 	

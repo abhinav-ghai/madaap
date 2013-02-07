@@ -1,7 +1,5 @@
 package extractor;
 
-import java.io.IOException;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -11,13 +9,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.TimerTask;
 
-public class Checker {
+public class Checker extends TimerTask implements Runnable {
 	private Connection mysqlconn;
-	public static void main(String[] args){
-		Checker checker = new Checker();
-		checker.checkAll(checker.getURLlist());
-	}
+	static final int FROM_EXTRACTOR = 0;
+	static final int REVIEWED_GOOD = 1;
+	static final int REVIEWED_BAD = 2;
+	static final int INACTIVE_UNREVIEWED = 3;
+	static final int INACTIVE_REVIEWED = 4;
 	
 	ResultSet getURLlist(){
 		mysqlconn = Madaap.getMySQLconnection();
@@ -30,7 +30,7 @@ public class Checker {
 		}
 		ResultSet URLlist = null;
 		try {
-			URLlist = getAllURL.executeQuery("Select URL from url WHERE Status != 2");
+			URLlist = getAllURL.executeQuery("Select URL,Status from tab_url WHERE Status != " + REVIEWED_BAD);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -42,13 +42,40 @@ public class Checker {
 
 		try {
 			while(set.next()){
-				URL url = new URL(set.getString(1));
-				if (!isURLActive(url)){
-					PreparedStatement updateStatus = mysqlconn.prepareStatement("UPDATE url SET Status = ? WHERE URL = ?");
-					updateStatus.setInt(1, 3);
-					updateStatus.setString(2, url.toString());
-					updateStatus.executeUpdate();
+				URL url = new URL(set.getString("URL"));
+				int status = set.getInt("Status");
+				PreparedStatement updateStatus = mysqlconn.prepareStatement("UPDATE tab_url SET Status = ? WHERE URL = ?");
+				updateStatus.setString(2, url.toString());
+				
+				switch(status){
+				case FROM_EXTRACTOR:
+					if (!isURLActive(url)){
+						updateStatus.setInt(1, INACTIVE_UNREVIEWED);
+						updateStatus.executeUpdate();
+					}
+					break;
+				case REVIEWED_GOOD:
+					if (!isURLActive(url)){
+						updateStatus.setInt(1, INACTIVE_REVIEWED);
+						updateStatus.executeUpdate();
+					}
+					break;
+				case INACTIVE_UNREVIEWED:
+					if (isURLActive(url)){
+						updateStatus.setInt(1, FROM_EXTRACTOR);
+						updateStatus.executeUpdate();
+					}
+					break;
+				case INACTIVE_REVIEWED:
+					if (isURLActive(url)){
+						updateStatus.setInt(1, FROM_EXTRACTOR);
+						updateStatus.executeUpdate();
+					}
+					break;
+				default:
+					break;
 				}
+				
 				//System.out.println("URL: "+url.toString());
 				
 			}
@@ -80,5 +107,14 @@ public class Checker {
 			}
 		}
 		return true;
+	}
+
+	@Override
+	public void run() {
+		final long start = System.currentTimeMillis();
+		Checker checker = new Checker();
+		checker.checkAll(checker.getURLlist());
+		final long end = System.currentTimeMillis();
+		System.out.println((end - start)/1000.0 + " seconds for checker");
 	}
 }

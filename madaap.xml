@@ -4,8 +4,9 @@
 <home>C:\\GATE</home>
 </gate>
 <timer>
-<ManualFeederTimer>1</ManualFeederTimer>
-<twitter>1</twitter>
+<ManualFeederInterval>1</ManualFeederInterval>
+<TwitterInterval>1</TwitterInterval>
+<CheckerInterval>1</CheckerInterval>
 </timer>
 <database>
 <url>//localhost/madaap</url>

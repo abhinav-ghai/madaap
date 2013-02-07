@@ -143,34 +143,34 @@ public class Extractor implements Runnable{
 					
 					/*If download links is empty, crawl sub-pages i.e. Call EntityController using current URL as seed
 					 * Call the crawler only if current URL is taken from input queue*/
+					
 					if (crawlSubpages(url, fromQueue, doc, original, downloadLinks)){
 						return 0;
 					}
 					
-					
 					/*Insert URL in database*/
 					PreparedStatement insertURL = null;
 					try {
-						insertURL = mysqlconn.prepareStatement("insert into url values (?,?,?)");
+						insertURL = mysqlconn.prepareStatement("insert into tab_url values (?,?,?)");
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					try {
-						insertURL.setString(1, null);
+						insertURL.setString(1, null);		/*auto-incremented ID values*/
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					try {
-						insertURL.setString(2, url.toString());
+						insertURL.setString(2, url.toString());		/*URL to be inserted into*/
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 
 					try {
-						insertURL.setInt(3, 0);
+						insertURL.setInt(3, Checker.FROM_EXTRACTOR);
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -306,7 +306,7 @@ public class Extractor implements Runnable{
 				}
 			}
 			else{
-				System.out.println("not queue url and empty");
+				System.out.println("Sub-page url without links,exiting...");
 			}
 			Factory.deleteResource(doc);
 			return true;
@@ -338,7 +338,7 @@ public class Extractor implements Runnable{
 		}
 		ResultSet check = null;
 		try {
-			check = checkifexists.executeQuery("Select Exists (Select 1 from url where URL = '"+ url.toString() + "')");
+			check = checkifexists.executeQuery("Select Exists (Select 1 from tab_url where URL = '"+ url.toString() + "')");
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
