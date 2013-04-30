@@ -2,14 +2,14 @@ package extractor;
 import gate.Gate;
 import gate.creole.ANNIEConstants;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.net.URI;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
@@ -18,11 +18,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.XMLConfiguration;
 
-import com.sun.jndi.toolkit.url.Uri;
-
-import collectURL.Delicious;
-import collectURL.Facebook;
-import collectURL.Gplus;
 import collectURL.ManualFeeder;
 import collectURL.Twitter;
 
@@ -45,7 +40,7 @@ public class Madaap {
 	public static void main(String[] args) throws Exception{
 		
 		/*Set to your Gate installation home*/
-		XMLConfiguration config = new XMLConfiguration("madaap.xml");
+		XMLConfiguration config = new XMLConfiguration("config/madaap.xml");
 		Gate.setGateHome(new File(config.getString("gate.home")));
 		
 		Gate.init();
@@ -64,6 +59,7 @@ public class Madaap {
 		/*Timer to schedule collector tasks at regular intervals*/
 		Timer timer = new Timer();
 		
+		System.out.println("timer is " + config.getString("timer.ManualFeederInterval"));
 		/*Collect URL from /input/url.txt*/
 		TimerTask manualFeederTask = new ManualFeeder(queue);
 		long manualFeederTime = Long.parseLong(config.getString("timer.ManualFeederInterval"))*ONE_HOUR;//Unit of ManualFeederTime: hour
@@ -78,7 +74,7 @@ public class Madaap {
 		
 		/*Check all URL if they are active or not*/
 		TimerTask checkerTask = new Checker();
-		long checkerTime = Long.parseLong(config.getString("timer.CheckerInterval"))*ONE_HOUR;//Unit of ManualFeederTime: hour
+		long checkerTime = Long.parseLong(config.getString("timer.CheckerInterval"))*ONE_HOUR;//Unit of CheckerTime: hour
 		timer.scheduleAtFixedRate(checkerTask, 0, checkerTime);
 	}
 	
@@ -95,8 +91,11 @@ public class Madaap {
 			System.out.println(e.getMessage() +"\nCannot register MySQL to DriverManager");
 		}
 		try{
-			XMLConfiguration config = new XMLConfiguration("madaap.xml");
-			mysqlconn = DriverManager.getConnection("jdbc:mysql:"+config.getString("database.url"),"root","");
+			XMLConfiguration config = new XMLConfiguration("config/madaap.xml");
+			Properties connectionProp = new Properties();
+			connectionProp.put("user",config.getString("database.username"));
+			connectionProp.put("password", config.getString("database.password"));
+			mysqlconn = DriverManager.getConnection("jdbc:mysql"+"://"+config.getString("database.url")+":"+config.getString("database.port")+"/madaap",connectionProp);
 		}
 		catch(SQLException e){
 			System.out.println(e.getMessage() + "\nCannot connect to MySQL. Check if MySQL is running.");

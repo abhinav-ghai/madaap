@@ -1,10 +1,1 @@
-http://www.google.com
-http://www.wikipedia.org
-http://www.yahoo.com
-http://www.cs.purdue.edu/homes/alanqi/
-http://www.pasda.psu.edu/uci/SearchResults.aspx?originator=&Keyword=&sessionID=562300992201211511188&searchType=keyword&condition=OR&entry=PASDA
-http://www.pasda.psu.edu/uci/MetadataDisplay.aspx?entry=PASDA&file=AlleghenyCounty_Basins2002.xml&dataset=1194
-http://www.pasda.psu.edu/uci/MetadataDisplay.aspx?entry=PASDA&file=AlleghenyCounty_CntyCouncil201205.xml&dataset=1198
-http://www.pasda.psu.edu/uci/MetadataDisplay.aspx?entry=PASDA&file=AlleghenyCounty_Greenways201003.xml&dataset=1208
-http://www.pasda.psu.edu/uci/MetadataDisplay.aspx?entry=PASDA&file=AlleghenyCounty_NWI2000.xml&dataset=1213
-http://www.ornl.gov/sci/landscan/landscan2011_sample.shtml
+http://www.iucnredlist.org/technical-documents/spatial-data

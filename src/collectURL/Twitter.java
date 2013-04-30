@@ -30,7 +30,7 @@ public class Twitter extends TimerTask implements Runnable{
 		queue = q;
 	}
 	private void collect() throws Exception{
-		XMLConfiguration config = new XMLConfiguration("twitter.xml");
+		XMLConfiguration config = new XMLConfiguration("config/twitter.xml");
 		System.out.println("Twitter collector launched");
 		HttpClient twitterClient = new DefaultHttpClient();
 		List<NameValuePair> qparams = new ArrayList<NameValuePair>();

@@ -1,6 +1,11 @@
 package extractor;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -15,6 +20,7 @@ import gate.Document;
 import gate.DocumentContent;
 import gate.Factory;
 import gate.FeatureMap;
+import gate.annotation.AnnotationSetImpl;
 import gate.creole.ANNIETransducer;
 import gate.creole.ExecutionException;
 import gate.creole.POSTagger;
@@ -29,7 +35,6 @@ import gate.creole.tokeniser.DefaultTokeniser;
 import gate.util.InvalidOffsetException;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -37,18 +42,21 @@ import java.sql.Statement;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.XMLConfiguration;
+import org.apache.commons.lang.math.NumberUtils;
 
 import crawler.EntityController;
-
 
 /**
  * Contains methods to perform annotations and extract few entities like author,title etc from a given URL
  * and store them in a MySQL database.
- * It consumes URLs from a Queue.
+ * It consumes URLs from a FIFO Queue.
+ * Queue is being populated by manual feeder and twitter posts, and other collectors from package collectURL
  * @author abhinav
  *
  */
 public class Extractor implements Runnable{
+	
+	/*declare GATE processing resources*/
 	private static AnnotationDeletePR deletor;
 	private static DefaultTokeniser tokeniser;
 	private static DefaultGazetteer gazetteer;
@@ -88,51 +96,84 @@ public class Extractor implements Runnable{
 			System.out.println("Couldn't initialize extractor");
 		}
 	}
+	
+	/*declare queue for collecting URL*/
 	private final BlockingQueue<URL> queue;
-	/**
-	 * 
-	 * @param url
-	 */
+	
+	/*to start extractor thread*/
 	public Extractor(BlockingQueue<URL> q){
 		queue = q;
 		new Thread(this).start();
 	}
-	
-
+	/**
+	 * 
+	 * @param url
+	 * @param fromQueue
+	 * @return
+	 */
 	public static int getEntities(URL url,boolean fromQueue){
+				
 				/*Create a connection to MySQL database*/
 				Connection mysqlconn = Madaap.getMySQLconnection();
 				
 				/*Check if URL already exists in database*/
 				if (isURLexisting(url, mysqlconn)){
+					try {
+						mysqlconn.close();
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					return 0;
 				}
 				
-				/*Create new document*/
+				/*Create new GATE document from URL*/
 				Document doc = createDocument(url);
 				
 				if (doc!=null){
 					
-					/*Perform annotation on newly created document*/
-					AnnotationSet set = doAnnotation(doc);
-					if (set == null){
+					/*Get original markups of GATE document*/
+					AnnotationSet original = doc.getAnnotations("Original markups");
+					
+					/*Get download able links*/
+					Set<String> downloadLinks = getDownloadLinks(original, doc, url);
+					
+					/*If current document is a sub-page and has no links, discard document*/
+					if(fromQueue==false && downloadLinks.isEmpty()){
+						Factory.deleteResource(doc);
+						try {
+							mysqlconn.close();
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 						return 0;
 					}
-					AnnotationSet original = doc.getAnnotations("Original markups");
-					Annotation metadataAnnotation = hasMetadata(original, doc);
-					
-					/*If web page has metadata, extract entities from metadata page*/
-					if (metadataAnnotation != null){
-						System.out.println("has metadata link");
-						System.exit(0);
+					/*Perform annotation on newly created GATE document*/
+					AnnotationSet set = doAnnotation(doc);
+					if (set == null){
+						try {
+							mysqlconn.close();
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						return 0;
 					}
 					
+					URL metadataurl = hasMetadata(original, doc, url);
+					
+					/*If web page has metadata, extract spatial extent from metadata page*/
+					
+					Set<String> spatialExtent = new HashSet<String>();
+					if (metadataurl != null){
+							spatialExtent = getSpatialExtent(metadataurl);
+					}
 					/*Get all the entities extracted from web page*/
-					HashSet<?> formatSet = (HashSet<?>)getFormats(set,doc);
-					Set<?> titleSet = getTitle(original,doc);
-					Set<?> authorSet = getAuthor(set,original,doc);
+					Set<String> formatSet = getFormats(downloadLinks);
+					Set<String> titleSet = getTitle(original,doc);
+					Set<DocumentContent> authorSet = getAuthor(set,original,doc);
 					String abst = getAbstract(original,doc);
-					Set<String> downloadLinks = getDownloadLinks(original, doc);
 					
 					/*Print entities*/
 					System.out.println("Formats:" + formatSet);
@@ -140,49 +181,22 @@ public class Extractor implements Runnable{
 					System.out.println("Author: " + authorSet);
 					System.out.println("Abstract: " + abst.toString());
 					System.out.println("Links: " + downloadLinks.toString());
+					System.out.println("Spatial: " + spatialExtent.toString());
 					
 					/*If download links is empty, crawl sub-pages i.e. Call EntityController using current URL as seed
 					 * Call the crawler only if current URL is taken from input queue*/
 					
 					if (crawlSubpages(url, fromQueue, doc, original, downloadLinks)){
+						try {
+							mysqlconn.close();
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 						return 0;
 					}
 					
-					/*Insert URL in database*/
-					PreparedStatement insertURL = null;
-					try {
-						insertURL = mysqlconn.prepareStatement("insert into tab_url values (?,?,?)");
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					try {
-						insertURL.setString(1, null);		/*auto-incremented ID values*/
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					try {
-						insertURL.setString(2, url.toString());		/*URL to be inserted into*/
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-
-					try {
-						insertURL.setInt(3, Checker.FROM_EXTRACTOR);
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					try {
-						insertURL.executeUpdate();
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					System.out.println("URL inserted: " + url.toString());
-					
+					insertURL(mysqlconn, url);
 					
 					/*Insert other entities in database*/
 					Statement getURLid = null;
@@ -194,7 +208,7 @@ public class Extractor implements Runnable{
 					}
 					ResultSet urlID = null;
 					try {
-						urlID = getURLid.executeQuery("select ID from url where URL = '"+ url.toString() + "'limit 1");
+						urlID = getURLid.executeQuery("select ID from tab_url where URL = '"+ url.toString() + "'limit 1");
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -202,111 +216,349 @@ public class Extractor implements Runnable{
 					try {
 						if (urlID.next()){
 							int id = urlID.getInt(1);
-							
-							PreparedStatement insertAbstract = mysqlconn.prepareStatement("insert into abstract values(?,?,?)");
-							insertAbstract.setString(1, null);
-							insertAbstract.setInt(2, id);
-							insertAbstract.setString(3, abst);
-							insertAbstract.executeUpdate();
-							
-							PreparedStatement insertFormats = mysqlconn.prepareStatement("insert into format values(?,?,?)");
-							Iterator<?> format = formatSet.iterator();
-							while(format.hasNext()){
-								insertFormats.setString(1, null);
-								insertFormats.setInt(2, id);
-								insertFormats.setString(3, format.next().toString());
-								insertFormats.executeUpdate();
-							}
-							PreparedStatement insertAuthors = mysqlconn.prepareStatement("insert into authors values(?,?,?)");
-							Iterator<?> author = authorSet.iterator();
-							while(author.hasNext()){
-								insertAuthors.setString(1, null);
-								insertAuthors.setInt(2, id);
-								insertAuthors.setString(3, author.next().toString());
-								insertAuthors.executeUpdate();
-							}
-							PreparedStatement insertTitles = mysqlconn.prepareStatement("insert into title values(?,?,?)");
-							Iterator<?> Title = titleSet.iterator();
-							while(Title.hasNext()){
-								insertTitles.setString(1, null);
-								insertTitles.setInt(2, id);
-								insertTitles.setString(3, Title.next().toString());
-								insertTitles.executeUpdate();
-							}
-							PreparedStatement insertLinks = mysqlconn.prepareStatement("insert into links values(?,?,?)");
-							Iterator<?> Link = downloadLinks.iterator();
-							while(Link.hasNext()){
-								insertLinks.setString(1, null);
-								insertLinks.setInt(2, id);
-								insertLinks.setString(3, Link.next().toString());
-								insertLinks.executeUpdate();
-							}
+							insertAbstract(mysqlconn,abst,id);
+							insertFormat(mysqlconn,formatSet,id);
+							insertAuthor(mysqlconn,authorSet,id);
+							insertTitle(mysqlconn,titleSet,id);
+							insertLink(mysqlconn,downloadLinks,id);
+							insertSpatialExtent(mysqlconn,spatialExtent,id);
 						}
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+					try {
+						urlID.close();
+					} catch (SQLException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 					Factory.deleteResource(doc);
-					return 0;	
+					try {
+						mysqlconn.close();
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					return 0;
 				}
 				else{
 					/*Document was null*/
+					try {
+						mysqlconn.close();
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					return 1;	
 				}
-				
+	}
+	/**
+	 * 
+	 * @param downloadLinks
+	 * @return
+	 */
+	private static Set<String> getFormats(Set<String> downloadLinks) {
+		Set<String> formatSet = new HashSet<String>(); 
+		Iterator<String> linkit = downloadLinks.iterator();
+		while(linkit.hasNext()){
+			String link = linkit.next();
+			formatSet.add(link.substring(link.lastIndexOf('.')+1, link.length()));
+		}
+		return formatSet;
+	}
+	
+	/**
+	 * 
+	 * @param mysqlconn
+	 * @param spatialExtent
+	 * @param id
+	 * @throws SQLException
+	 */
+	private static void insertSpatialExtent(Connection mysqlconn,
+			Set<String> spatialExtent, int id) throws SQLException {
+		PreparedStatement insertSE = mysqlconn.prepareStatement("insert into tab_spatialextent values(?,?,?)");
+		Iterator<?> seiter = spatialExtent.iterator();
+		while(seiter.hasNext()){
+			insertSE.setString(1, null);
+			insertSE.setInt(2, id);
+			insertSE.setString(3, seiter.next().toString());
+			insertSE.executeUpdate();
+		}
+		insertSE.close();
 	}
 
+	/**
+	 * 
+	 * @param mysqlconn
+	 * @param downloadLinks
+	 * @param id
+	 * @throws SQLException
+	 */
+	private static void insertLink(Connection mysqlconn,
+			Set<String> downloadLinks,int id) throws SQLException {
+		PreparedStatement insertLinks = mysqlconn.prepareStatement("insert into tab_links values(?,?,?)");
+		Iterator<?> Link = downloadLinks.iterator();
+		while(Link.hasNext()){
+			insertLinks.setString(1, null);
+			insertLinks.setInt(2, id);
+			insertLinks.setString(3, Link.next().toString());
+			insertLinks.executeUpdate();
+		}
+		insertLinks.close();
+	}
 
+	/**
+	 * 
+	 * @param mysqlconn
+	 * @param titleSet
+	 * @param id
+	 * @throws SQLException
+	 */
+	private static void insertTitle(Connection mysqlconn, Set<?> titleSet,int id) throws SQLException {
+		PreparedStatement insertTitles = mysqlconn.prepareStatement("insert into tab_title values(?,?,?)");
+		Iterator<?> Title = titleSet.iterator();
+		while(Title.hasNext()){
+			insertTitles.setString(1, null);
+			insertTitles.setInt(2, id);
+			insertTitles.setString(3, Title.next().toString());
+			insertTitles.executeUpdate();
+		}
+		insertTitles.close();
+	}
+
+	/**
+	 * 
+	 * @param mysqlconn
+	 * @param authorSet
+	 * @param id
+	 * @throws SQLException
+	 */
+	private static void insertAuthor(Connection mysqlconn, Set<?> authorSet,int id) throws SQLException {
+		PreparedStatement insertAuthors = mysqlconn.prepareStatement("insert into tab_authors values(?,?,?)");
+		Iterator<?> author = authorSet.iterator();
+		while(author.hasNext()){
+			insertAuthors.setString(1, null);
+			insertAuthors.setInt(2, id);
+			insertAuthors.setString(3, author.next().toString());
+			insertAuthors.executeUpdate();
+		}
+		insertAuthors.close();
+	}
+
+	/**
+	 * 
+	 * @param mysqlconn
+	 * @param formatSet
+	 * @param id
+	 * @throws SQLException
+	 */
+	private static void insertFormat(Connection mysqlconn, Set<String> formatSet,int id) throws SQLException {
+		PreparedStatement insertFormats = mysqlconn.prepareStatement("insert into tab_format values(?,?,?)");
+		Iterator<?> format = formatSet.iterator();
+		while(format.hasNext()){
+			insertFormats.setString(1, null);
+			insertFormats.setInt(2, id);
+			insertFormats.setString(3, format.next().toString());
+			insertFormats.executeUpdate();
+		}
+		insertFormats.close();
+	}
+
+	/**
+	 * 
+	 * @param mysqlconn
+	 * @param abst
+	 * @param id
+	 * @throws SQLException
+	 */
+	private static void insertAbstract(Connection mysqlconn, String abst, int id) throws SQLException {
+		PreparedStatement insertAbstract = mysqlconn.prepareStatement("insert into tab_abstract values(?,?,?)");
+		insertAbstract.setString(1, null);
+		insertAbstract.setInt(2, id);
+		insertAbstract.setString(3, abst);
+		insertAbstract.executeUpdate();
+		insertAbstract.close();
+	}
+
+	/**
+	 * 
+	 * @param mysqlconn
+	 * @param url
+	 */
+	private static void insertURL(Connection mysqlconn,URL url){
+		/*Insert URL in database*/
+		PreparedStatement insertURL = null;
+		try {
+			insertURL = mysqlconn.prepareStatement("insert into tab_url values (?,?,?)");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			insertURL.setString(1, null);		/*auto-incremented ID values*/
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			insertURL.setString(2, url.toString());		/*URL to be inserted into*/
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		try {
+			insertURL.setInt(3, Checker.FROM_EXTRACTOR);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			insertURL.executeUpdate();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			insertURL.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("URL inserted: " + url.toString());
+	}
+	
+	/**
+	 * 
+	 * @param metadataurl
+	 * @return
+	 */
+	private static Set<String> getSpatialExtent(URL metadataurl) {
+		System.out.println(metadataurl);
+		XMLConfiguration config = null;
+		List<Object> words = new ArrayList<Object>();
+		try {
+			config = new XMLConfiguration("config/madaap.xml");
+		} catch (ConfigurationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		if (config!=null){
+			words = config.getList("SpatialExtentKeyword.north");
+			words.addAll(config.getList("SpatialExtentKeyword.south"));
+			words.addAll(config.getList("SpatialExtentKeyword.east"));
+			words.addAll(config.getList("SpatialExtentKeyword.west"));
+		}
+		Document doc = createDocument(metadataurl);
+		AnnotationSet original = doc.getAnnotations("Original markups");
+		Set<String> spatialextent = new HashSet<String>();
+		AnnotationSet spatial = new AnnotationSetImpl(doc);
+		List<Integer> idlist = new ArrayList<Integer>(); 
+		Iterator<Annotation> annit = original.iterator();
+		while(annit.hasNext()){
+			Annotation ann = annit.next();
+			String content = null;
+			try {
+				content = doc.getContent().getContent(ann.getStartNode().getOffset(), ann.getEndNode().getOffset()).toString();
+				content = content.trim();
+			} catch (InvalidOffsetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if (NumberUtils.isNumber(content)& !content.isEmpty()){
+				float numericcontent = Float.parseFloat(content);
+				if (numericcontent<=180 && numericcontent>=-180){
+					String type = ann.getType().toLowerCase();
+					//if(type.contains("west")||type.contains("east")||type.contains("north")||type.contains("south")){
+					Iterator<Object> wordit = words.iterator();
+					while(wordit.hasNext()){
+						if(type.contains((String)wordit.next())){
+							//System.out.println(ann+"\n"+content);
+							FeatureMap map = Factory.newFeatureMap();
+							map.put("content", content);
+							ann.setFeatures(map);
+							idlist.add(ann.getId());
+							spatial.add(ann);
+							break;
+						}	
+					}
+				}
+			}
+		}
+		Collections.sort(idlist);
+		if(idlist.size()==0){
+			return spatialextent;
+		}
+		List<Integer> startid = getSpatialGroup(idlist);
+		Iterator<Integer> idit = startid.iterator();
+		while(idit.hasNext()){
+			Integer id = idit.next();
+			Annotation one = spatial.get(idlist.get(id));
+			Annotation two = spatial.get(idlist.get(id+1));
+			Annotation three = spatial.get(idlist.get(id+2));
+			Annotation four = spatial.get(idlist.get(id+3));
+			String first = one.getType() + ": " + one.getFeatures().get("content");
+			String second = two.getType() + ": " + two.getFeatures().get("content");
+			String third = three.getType() + ": " + three.getFeatures().get("content");
+			String fourth = four.getType() + ": " + four.getFeatures().get("content");
+			spatialextent.add(first+";"+second+";"+third+";"+fourth);
+			System.out.println(first+"\n"+second+"\n"+third+"\n"+fourth+"\n\n");
+		}
+		Factory.deleteResource(doc);
+		return spatialextent;
+	}
+
+	/**
+	 * 
+	 * @param idlist
+	 * @return
+	 */
+	private static List<Integer> getSpatialGroup(List<Integer> idlist) {
+		Integer old = idlist.get(0);
+		ArrayList<Integer> startingidlist = new ArrayList<Integer>();
+		ArrayList<Integer> diff = new ArrayList<Integer>(idlist.size()-1);
+		for(int i=1;i<idlist.size();i++){
+			Integer now = idlist.get(i);
+			diff.add(now-old);
+			old=now;
+		}
+		Integer position = new Integer(0);
+		while(position<diff.size()-2){
+			if(diff.get(position).equals(diff.get(position+1))){
+				if(diff.get(position+1).equals(diff.get(position+2))){
+					startingidlist.add(position);
+				}
+			}
+			position++;
+		}
+		return startingidlist;
+	}
+
+	/**
+	 * 
+	 * @param url
+	 * @param fromQueue
+	 * @param doc
+	 * @param original
+	 * @param downloadLinks
+	 * @return
+	 */
 	private static boolean crawlSubpages(URL url, boolean fromQueue, Document doc,
 			AnnotationSet original, Set<String> downloadLinks) {
 		
 		if (downloadLinks.isEmpty()){
 			if (fromQueue){
-				try {
-					String path = url.toString();
-					int position = path.length();
-					String basePath = null;
-			        for (int i = position-1; i>=0 ;i--){
-			        	if (path.charAt(i)=='/'){
-			        		position = i;
-			        		break;
-			        	}
-			        }
-			        if (position == 0){
-			        	basePath = path;
-			        }
-			        else{
-			        	basePath = path.substring(0, position+1);
-			        }
-			        //System.out.println("basepath: "+basePath);
-					Set<String> href = new HashSet<String>();
-					href.add("href");
-					AnnotationSet a = original.get("a",href);
-					Annotation ann = null;
-					String linkVal = null;
-					Iterator<Annotation> links = a.iterator();
-					while (links.hasNext()){
-						ann = (Annotation) links.next();
-						linkVal = (String) ann.getFeatures().get("href");
-						//System.out.println("href: "+ linkVal + " " + basePath);
-						if (!linkVal.startsWith("javascript")){
-							String fullPath = new String(new URL(new URL(basePath),linkVal).toString());
-							//System.out.println("full: "+fullPath);
-							if (fullPath.startsWith(basePath)){
-								Extractor.getEntities(new URL(fullPath), false);
-							}
-							//Extractor.getEntities(new URL(linkVal), false);
-						}
-					}
 					//System.out.println("entering crawler..");
-					//EntityController.begin(url.toString());
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+					try {
+						EntityController.begin(url.toString());
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 			}
 			else{
-				System.out.println("Sub-page url without links,exiting...");
+				System.out.println("Sub-page URL,No links,Don't insert in DB");
 			}
 			Factory.deleteResource(doc);
 			return true;
@@ -315,8 +567,11 @@ public class Extractor implements Runnable{
 			return false;	
 		}
 	}
-
-
+	/**
+	 * 
+	 * @param url
+	 * @return
+	 */
 	private static Document createDocument(URL url) {
 		Document doc = null;
 		try {
@@ -327,7 +582,12 @@ public class Extractor implements Runnable{
 		return doc;
 	}
 
-
+	/**
+	 * 
+	 * @param url
+	 * @param mysqlconn
+	 * @return
+	 */
 	private static boolean isURLexisting(URL url, Connection mysqlconn) {
 		Statement checkifexists = null;
 		try {
@@ -355,11 +615,25 @@ public class Extractor implements Runnable{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+			try {
+				checkifexists.close();
+				check.close();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		System.out.println(url.toString());
 		return false;
 	}
-	
-private static Annotation hasMetadata(AnnotationSet set,Document doc){
+	/**
+	 * 
+	 * @param set
+	 * @param doc
+	 * @param url
+	 * @return
+	 */
+private static URL hasMetadata(AnnotationSet set,Document doc, URL url){
+	String contenttype = new String();
 	AnnotationSet linkSet = set.get("a");
 	Iterator<Annotation> linkIt = linkSet.iterator();
 	while (linkIt.hasNext()){
@@ -371,13 +645,40 @@ private static Annotation hasMetadata(AnnotationSet set,Document doc){
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		if (value.toLowerCase().contains("metadata")){
-			return ann;
+		if (value.toLowerCase().contains("metadata")||value.toLowerCase().contains("xml")){
+			if (!ann.getFeatures().keySet().contains("href")){
+				continue;
+			}
+			String metadatahref = (String) ann.getFeatures().get("href");
+			String metadataurl = null;
+			if (metadatahref.startsWith("/")){
+				metadataurl = url.getProtocol() + "://" + url.getHost() + metadatahref;
+			}
+			else{
+				metadataurl = url.toString().substring(0, url.toString().lastIndexOf('/')+1)+metadatahref;
+			}
+			URL u = null;
+			try {
+				u = new URL(metadataurl);
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		    URLConnection uc = null;
+		    try {
+				uc = u.openConnection();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		    contenttype = uc.getContentType();
+		    if(contenttype.endsWith("/xml")){
+		    	//System.out.println(u+"\n"+contenttype);
+		    	return u;
+		    }
 		}
-		
 	}
 	return null;
-	
 }
 
 
@@ -470,8 +771,14 @@ private static Annotation hasMetadata(AnnotationSet set,Document doc){
 		}
 		return titleSet;
 	}
-	
-	public static Set<?> getAuthor(AnnotationSet set,AnnotationSet original, Document doc){
+	/**
+	 * 
+	 * @param set
+	 * @param original
+	 * @param doc
+	 * @return
+	 */
+	public static Set<DocumentContent> getAuthor(AnnotationSet set,AnnotationSet original, Document doc){
 		
 		AnnotationSet org = set.get("Organization");
 		Set<DocumentContent> orgSet1 = new HashSet<DocumentContent>();
@@ -548,14 +855,50 @@ private static Annotation hasMetadata(AnnotationSet set,Document doc){
 		//orgSet.addAll(orgSet1);
 		return orgSet;
 	}
-	
+	/**
+	 * 
+	 * @param set
+	 * @param doc
+	 * @return
+	 */
 	public static String getAbstract(AnnotationSet set,Document doc){
 		mapAbstract.put("class", "body");
+		XMLConfiguration config = null;
+		try {
+			config = new XMLConfiguration("config/madaap.xml");
+		} catch (ConfigurationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		int minAbstractLength = config.getInt("Abstract.MinimumLength");
 		AnnotationSet para = set.get("p");
 		if (para.isEmpty()){
-			return "Empty";
+			return "None found";
 		}
 		else{
+			Iterator<Annotation> it = para.iterator();
+			List<Integer> idlist = new ArrayList<Integer>();
+			while(it.hasNext()){
+				Annotation ann = it.next();
+				Long length = ann.getEndNode().getOffset() - ann.getStartNode().getOffset();
+				if(length>=minAbstractLength){
+					idlist.add(ann.getId());	
+				}
+			}
+			if(idlist.size()==0){
+				return "None found";
+			}
+			Collections.sort(idlist);
+			Annotation ann = ((AnnotationSetImpl)set).get(idlist.get(0));
+			String content = null;
+			try {
+				 content = doc.getContent().getContent(ann.getStartNode().getOffset(), ann.getEndNode().getOffset()).toString();
+			} catch (InvalidOffsetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return content;
+			/*
 			Iterator<Annotation> it = para.iterator();
 			Annotation ann = (Annotation) para.toArray()[0];
 			int minVal = ann.getId().intValue();
@@ -575,11 +918,17 @@ private static Annotation hasMetadata(AnnotationSet set,Document doc){
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}  
-			return abstractValue;
+			return abstractValue;*/
 		}
-		
 	}
-	public static Set<String> getDownloadLinks(AnnotationSet original,Document doc){
+	/**
+	 * 
+	 * @param original
+	 * @param doc
+	 * @param url
+	 * @return
+	 */
+	public static Set<String> getDownloadLinks(AnnotationSet original,Document doc, URL url){
 		Set<String> href = new HashSet<String>();
 		href.add("href");
 		AnnotationSet a = original.get("a",href);
@@ -594,7 +943,7 @@ private static Annotation hasMetadata(AnnotationSet set,Document doc){
 			List<Object> linkEnd = new ArrayList<Object>();
 			XMLConfiguration config = null;
 			try {
-				config = new XMLConfiguration("madaap.xml");
+				config = new XMLConfiguration("config/madaap.xml");
 			} catch (ConfigurationException e) {
 				e.printStackTrace();
 			}
@@ -604,8 +953,24 @@ private static Annotation hasMetadata(AnnotationSet set,Document doc){
 			
 			Iterator<Object> linkIt = linkEnd.iterator();
 			while (linkIt.hasNext()){
-				if (linkVal.endsWith((String) linkIt.next())){
-					linkSet.add(linkVal);
+				if (linkVal.toLowerCase().endsWith((String) linkIt.next())){
+					String base = url.toString().substring(0, url.toString().lastIndexOf('/'));
+					URL baseurl=null;
+					try {
+						baseurl = new URL(base);
+					} catch (MalformedURLException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					URL absoluteurl = null;
+					try {
+						absoluteurl = new URL(baseurl,linkVal);
+					} catch (MalformedURLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					System.out.println(base+" ::: "+linkVal);
+					linkSet.add(absoluteurl.toString());
 					break;
 				}
 			}
@@ -613,7 +978,7 @@ private static Annotation hasMetadata(AnnotationSet set,Document doc){
 		return linkSet;
 		
 	}
-
+		
 		public void run() {
 		try {
 			while(true){

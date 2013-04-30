@@ -91,5 +91,6 @@
 	<classpathentry kind="lib" path="lib/crawler/crawler4j-3.x-dependencies/tagsoup-1.2.1.jar"/>
 	<classpathentry kind="lib" path="lib/crawler/crawler4j-3.x-dependencies/tika-core-1.0.jar"/>
 	<classpathentry kind="lib" path="lib/crawler/crawler4j-3.x-dependencies/tika-parsers-1.0.jar"/>
+	<classpathentry kind="lib" path="Depth2"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

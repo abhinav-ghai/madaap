@@ -1,5 +1,6 @@
 package crawler;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,11 +14,11 @@ public class EntityController {
 	
 	public static void begin(String url) throws Exception{
 		String crawlStorageFolder = "Depth2/";
-        int numberOfCrawlers = 4;
+        int numberOfCrawlers = 1;
 
         CrawlConfig config = new CrawlConfig();
         config.setCrawlStorageFolder(crawlStorageFolder);
-        config.setMaxDepthOfCrawling(2);
+        config.setMaxDepthOfCrawling(1);
 
         /*
          * Instantiate the controller for this crawl.
@@ -34,21 +35,10 @@ public class EntityController {
          */
         List<String> domains = new ArrayList<String>();
         controller.addSeed(url);
-        int position = url.length();
-        for (int i = position-1; i>=0 ;i--){
-        	if (url.charAt(i)=='/'){
-        		position = i;
-        		break;
-        	}
-        }
-        if (position == 0){
-        	domains.add(url);
-        }
-        else{
-        	domains.add(url.substring(0, position+1));
-        }
-        System.out.println("seed: " + url);
-        System.out.println("domain: " + url.substring(0, position+1));
+        URL myurl = new URL(url);
+        domains.add(myurl.getProtocol() + "://"+ myurl.getHost());
+        System.out.println("Seed: " + url);
+        System.out.println("Domain: " + domains.toString());
     	controller.setCustomData((List<String>)domains);
 
         /*

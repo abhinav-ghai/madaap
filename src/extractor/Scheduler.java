@@ -3,7 +3,11 @@ import java.net.URL;
 import java.util.List;
 
 
-
+/**
+ * Disfunct class, not in use
+ * @author abhinav
+ *
+ */
 public class Scheduler implements Runnable{
 	public void schedule(List<URL> queue,int item_count){
 		int i;

@@ -2,6 +2,7 @@ package crawler;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import edu.uci.ics.crawler4j.crawler.Page;
@@ -21,8 +22,8 @@ public class EntityCrawler extends WebCrawler{
             + "|rm|smil|wmv|swf|wma|zip|rar|gz))$");
 	@Override
 	public boolean shouldVisit(WebURL url){
-		return true;
-		/*
+		//return true;
+		
 		List<String> domainsToCrawl = (List<String>) this.getMyController().getCustomData();
 		String href = url.getURL().toLowerCase();
 		if (FILTERS.matcher(href).matches()) {
@@ -30,17 +31,16 @@ public class EntityCrawler extends WebCrawler{
 		   }
 		for(String domain : domainsToCrawl){
 		      if (href.startsWith(domain)) {
-		    	  System.out.println("visiting: " + href);
+		    	  //System.out.println("visiting: " + href);
 		         return true;
 		      }
 		   }
-		System.out.println("temp visiting: " + href);
-        return false;*/
+        return false;
 	}
 	@Override
 	public void visit(Page page){
 		String url = page.getWebURL().getURL();
-		System.out.println("send to annotate: " + url);
+		//System.out.println("send to annotate: " + url);
         try {
 			Extractor.getEntities(new URL(url), false);
 		} catch (MalformedURLException e) {

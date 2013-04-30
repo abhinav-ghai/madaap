@@ -10,7 +10,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.TimerTask;
-
+/**
+ * Check validity of all URL stored in table tab_URL of madaap database
+ * Use HTTP response codes to check validity
+ * @author abhinav
+ *
+ */
 public class Checker extends TimerTask implements Runnable {
 	private Connection mysqlconn;
 	static final int FROM_EXTRACTOR = 0;
@@ -113,6 +118,7 @@ public class Checker extends TimerTask implements Runnable {
 	public void run() {
 		final long start = System.currentTimeMillis();
 		Checker checker = new Checker();
+		System.out.println("Checking URL...");
 		checker.checkAll(checker.getURLlist());
 		final long end = System.currentTimeMillis();
 		System.out.println((end - start)/1000.0 + " seconds for checker");
