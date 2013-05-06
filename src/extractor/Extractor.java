@@ -106,9 +106,10 @@ public class Extractor implements Runnable{
 		new Thread(this).start();
 	}
 	/**
+	 * This method is slightly long and can/should be broken into smaller modules.
 	 * 
-	 * @param url
-	 * @param fromQueue
+	 * @param url - URL extracted from queue from which we need to extract entities.
+	 * @param fromQueue - is this URL inserted by a collector. True - add outgoing links to queue. False - Don't add outgoing links
 	 * @return
 	 */
 	public static int getEntities(URL url,boolean fromQueue){
@@ -132,10 +133,10 @@ public class Extractor implements Runnable{
 				
 				if (doc!=null){
 					
-					/*Get original markups of GATE document*/
+					/*Get original HTML markups of GATE document*/
 					AnnotationSet original = doc.getAnnotations("Original markups");
 					
-					/*Get download able links*/
+					/*Get downloadable links*/
 					Set<String> downloadLinks = getDownloadLinks(original, doc, url);
 					
 					/*If current document is a sub-page and has no links, discard document*/
@@ -149,7 +150,7 @@ public class Extractor implements Runnable{
 						}
 						return 0;
 					}
-					/*Perform annotation on newly created GATE document*/
+					/*Perform annotation using GATE NLP tools on GATE document*/
 					AnnotationSet set = doAnnotation(doc);
 					if (set == null){
 						try {
@@ -175,7 +176,7 @@ public class Extractor implements Runnable{
 					Set<DocumentContent> authorSet = getAuthor(set,original,doc);
 					String abst = getAbstract(original,doc);
 					
-					/*Print entities*/
+					/*Print entities, not necessary*/
 					System.out.println("Formats:" + formatSet);
 					System.out.println("Title: " + titleSet.toString());
 					System.out.println("Author: " + authorSet);
@@ -195,7 +196,7 @@ public class Extractor implements Runnable{
 						}
 						return 0;
 					}
-					
+					/*insert URL in database*/
 					insertURL(mysqlconn, url);
 					
 					/*Insert other entities in database*/
@@ -233,6 +234,8 @@ public class Extractor implements Runnable{
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
+					
+					/*Clean up GATE resources*/
 					Factory.deleteResource(doc);
 					try {
 						mysqlconn.close();
@@ -254,8 +257,8 @@ public class Extractor implements Runnable{
 				}
 	}
 	/**
-	 * 
-	 * @param downloadLinks
+	 * Get end markers from download links
+	 * @param downloadLinks - a set of URLs which end with our GIS download markers
 	 * @return
 	 */
 	private static Set<String> getFormats(Set<String> downloadLinks) {
@@ -269,7 +272,7 @@ public class Extractor implements Runnable{
 	}
 	
 	/**
-	 * 
+	 * insert spatial extent in database
 	 * @param mysqlconn
 	 * @param spatialExtent
 	 * @param id
@@ -289,7 +292,7 @@ public class Extractor implements Runnable{
 	}
 
 	/**
-	 * 
+	 * insert download links in database
 	 * @param mysqlconn
 	 * @param downloadLinks
 	 * @param id
@@ -309,7 +312,7 @@ public class Extractor implements Runnable{
 	}
 
 	/**
-	 * 
+	 * insert titles in database
 	 * @param mysqlconn
 	 * @param titleSet
 	 * @param id
@@ -328,7 +331,7 @@ public class Extractor implements Runnable{
 	}
 
 	/**
-	 * 
+	 * insert authors in database
 	 * @param mysqlconn
 	 * @param authorSet
 	 * @param id
@@ -347,7 +350,7 @@ public class Extractor implements Runnable{
 	}
 
 	/**
-	 * 
+	 * insert formats in database
 	 * @param mysqlconn
 	 * @param formatSet
 	 * @param id
@@ -366,7 +369,7 @@ public class Extractor implements Runnable{
 	}
 
 	/**
-	 * 
+	 * insert abstract into database
 	 * @param mysqlconn
 	 * @param abst
 	 * @param id
@@ -382,7 +385,7 @@ public class Extractor implements Runnable{
 	}
 
 	/**
-	 * 
+	 * insert main URL in database i.e. the URL from which entities are extracted
 	 * @param mysqlconn
 	 * @param url
 	 */
@@ -430,14 +433,18 @@ public class Extractor implements Runnable{
 	}
 	
 	/**
-	 * 
-	 * @param metadataurl
-	 * @return
+	 * retrieve a set of four elements from an XML file
+	 * These elements must contain numbers that lie within range -180 to +180
+	 * These represent longitude and latitude of data set. 
+	 * @param metadataurl - an XML file
+	 * @return set of quadruples representing upper and lower limit of longitude and latitude 
 	 */
 	private static Set<String> getSpatialExtent(URL metadataurl) {
 		System.out.println(metadataurl);
 		XMLConfiguration config = null;
 		List<Object> words = new ArrayList<Object>();
+		
+		/*read keywords from configuration file*/
 		try {
 			config = new XMLConfiguration("config/madaap.xml");
 		} catch (ConfigurationException e1) {
@@ -450,7 +457,11 @@ public class Extractor implements Runnable{
 			words.addAll(config.getList("SpatialExtentKeyword.east"));
 			words.addAll(config.getList("SpatialExtentKeyword.west"));
 		}
+		
+		/*create GATE document from XML file*/
 		Document doc = createDocument(metadataurl);
+		
+		/*Iterate through original HTML annotations of document to find those IDs that contain numbers within range -180 to +180*/
 		AnnotationSet original = doc.getAnnotations("Original markups");
 		Set<String> spatialextent = new HashSet<String>();
 		AnnotationSet spatial = new AnnotationSetImpl(doc);
@@ -486,11 +497,16 @@ public class Extractor implements Runnable{
 				}
 			}
 		}
+		/*Sort the list of ID of annotations*/
 		Collections.sort(idlist);
 		if(idlist.size()==0){
 			return spatialextent;
 		}
+		
+		/*Obtain a list of starting annotation ID which form a group of four*/
 		List<Integer> startid = getSpatialGroup(idlist);
+		
+		/*Iterate through the starting IDs to add quadruples to returning set*/
 		Iterator<Integer> idit = startid.iterator();
 		while(idit.hasNext()){
 			Integer id = idit.next();
@@ -505,14 +521,19 @@ public class Extractor implements Runnable{
 			spatialextent.add(first+";"+second+";"+third+";"+fourth);
 			System.out.println(first+"\n"+second+"\n"+third+"\n"+fourth+"\n\n");
 		}
+		
+		/*Clean resource and return*/
 		Factory.deleteResource(doc);
 		return spatialextent;
 	}
 
 	/**
-	 * 
-	 * @param idlist
-	 * @return
+	 * Used in conjunction with above method getSpatialExtent
+	 * e.g.
+	 * Input:  3,4,5,6,45,46,47,48,53
+	 * Output: 3,45
+	 * @param idlist - list of ID of annotations
+	 * @return - list of integers which form a group of four from the input list of integers
 	 */
 	private static List<Integer> getSpatialGroup(List<Integer> idlist) {
 		Integer old = idlist.get(0);
@@ -568,8 +589,8 @@ public class Extractor implements Runnable{
 		}
 	}
 	/**
-	 * 
-	 * @param url
+	 * create a GATE document
+	 * @param url - URL from which to create document
 	 * @return
 	 */
 	private static Document createDocument(URL url) {
@@ -583,7 +604,7 @@ public class Extractor implements Runnable{
 	}
 
 	/**
-	 * 
+	 * Check if URL is already in database
 	 * @param url
 	 * @param mysqlconn
 	 * @return
@@ -626,7 +647,8 @@ public class Extractor implements Runnable{
 		return false;
 	}
 	/**
-	 * 
+	 * Check if the webpage identified by URL has an outgoing link which may contain metadata
+	 * Currently, metadata is an XML file whose anchor tag contain the word 'metadata'
 	 * @param set
 	 * @param doc
 	 * @param url
@@ -683,9 +705,9 @@ private static URL hasMetadata(AnnotationSet set,Document doc, URL url){
 
 
 	/**
-	 * 
-	 * @param doc
-	 * @return
+	 * Perform annotation on GATE document using NLP toold provided by GATE
+	 * @param doc - document on which annotation is done
+	 * @return set of annotations
 	 * @throws Exception
 	 */
 	public static AnnotationSet doAnnotation(Document doc){

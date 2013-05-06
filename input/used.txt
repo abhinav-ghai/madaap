@@ -1,1 +1,1 @@
-http://www.iucnredlist.org/technical-documents/spatial-data
+http://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/image/http://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/image/

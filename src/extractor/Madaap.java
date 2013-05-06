@@ -9,6 +9,8 @@ import java.net.URLClassLoader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -26,6 +28,7 @@ public class Madaap {
 
 	/**
 	 * Starting point of application
+	 * Read Madaap documentation before studying code.
 	 * @param args
 	 * @throws Exception
 	 * 
@@ -53,13 +56,12 @@ public class Madaap {
 		/*Declare queue to receive URL from various collectors*/
 		BlockingQueue<URL> queue = new LinkedBlockingQueue<URL>();
 		
-		/*Start extractor*/
+		/*Start extractor, initialization will run the thread*/
 		Extractor e = new Extractor(queue);
 		
 		/*Timer to schedule collector tasks at regular intervals*/
 		Timer timer = new Timer();
 		
-		System.out.println("timer is " + config.getString("timer.ManualFeederInterval"));
 		/*Collect URL from /input/url.txt*/
 		TimerTask manualFeederTask = new ManualFeeder(queue);
 		long manualFeederTime = Long.parseLong(config.getString("timer.ManualFeederInterval"))*ONE_HOUR;//Unit of ManualFeederTime: hour
@@ -77,6 +79,15 @@ public class Madaap {
 		long checkerTime = Long.parseLong(config.getString("timer.CheckerInterval"))*ONE_HOUR;//Unit of CheckerTime: hour
 		timer.scheduleAtFixedRate(checkerTask, 0, checkerTime);
 	}
+	/**
+	 * To stop the application, called through the daemon windows service
+	 * @param args
+	 */
+	static void stop(String args[]){
+		String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
+		System.out.println("Exiting system at " + time);
+		System.exit(0);
+	}
 	
 	/**
 	 * Get a connection to MySQL database named in madaap.xml file
@@ -93,6 +104,7 @@ public class Madaap {
 		try{
 			XMLConfiguration config = new XMLConfiguration("config/madaap.xml");
 			Properties connectionProp = new Properties();
+			System.out.println(config.getString("database.username"));
 			connectionProp.put("user",config.getString("database.username"));
 			connectionProp.put("password", config.getString("database.password"));
 			mysqlconn = DriverManager.getConnection("jdbc:mysql"+"://"+config.getString("database.url")+":"+config.getString("database.port")+"/madaap",connectionProp);
