@@ -20,7 +20,11 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
+/**
+ * currently defunct, must add facebook search API query
+ * @author abhinav
+ *
+ */
 public class Facebook extends TimerTask implements Runnable{
 	private final BlockingQueue<URL> queue;
 	public Facebook(BlockingQueue<URL> q){

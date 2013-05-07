@@ -4,7 +4,7 @@ import java.util.List;
 
 
 /**
- * Disfunct class, not in use
+ * Defunct class, not in use
  * @author abhinav
  *
  */

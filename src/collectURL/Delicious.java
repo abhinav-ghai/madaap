@@ -20,7 +20,11 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
+/**
+ * currently defunct, must add delicious search API query
+ * @author abhinav
+ *
+ */
 public class Delicious extends TimerTask implements Runnable{
 	private final BlockingQueue<URL> queue;
 	public Delicious(BlockingQueue<URL> q){
